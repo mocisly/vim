@@ -1160,8 +1160,12 @@ win_lbr_chartabsize(
      * First get the normal size, without 'linebreak' or text properties
      */
     size = win_chartabsize(wp, s, vcol);
-    if (*s == NUL && !has_lcs_eol)
-	size = 0;  // NUL is not displayed
+    if (*s == NUL)
+    {
+	// 1 cell for EOL list char (if present), as opposed to the two cell ^@
+	// for a NUL character in the text.
+	size = has_lcs_eol ? 1 : 0;
+    }
 # ifdef FEAT_LINEBREAK
     int is_doublewidth = has_mbyte && size == 2 && MB_BYTE2LEN(*s) > 1;
 # endif
@@ -1686,7 +1690,7 @@ getvvcol(
 	endadd = 0;
 	// Cannot put the cursor on part of a wide character.
 	ptr = ml_get_buf(wp->w_buffer, pos->lnum, FALSE);
-	if (pos->col < (colnr_T)STRLEN(ptr))
+	if (pos->col < ml_get_buf_len(wp->w_buffer, pos->lnum))
 	{
 	    int c = (*mb_ptr2char)(ptr + pos->col);
 

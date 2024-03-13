@@ -5197,4 +5197,12 @@ def Test_passing_type_to_builtin()
   v9.CheckScriptFailure(lines, 'E1405: Class "C" cannot be used as a value')
 enddef
 
+def Test_getregion()
+  assert_equal(['x'], getregion(getpos('.'), getpos('.'))->map((_, _) => 'x'))
+
+  v9.CheckDefAndScriptFailure(['getregion(10, getpos("."))'], ['E1013: Argument 1: type mismatch, expected list<any> but got number', 'E1211: List required for argument 1'])
+  assert_equal([''], getregion(getpos('.'), getpos('.')))
+  v9.CheckDefExecFailure(['getregion(getpos("a"), getpos("."))'], 'E1209:')
+enddef
+
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

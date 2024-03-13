@@ -4188,32 +4188,12 @@ mb_copy_char(char_u **fp, char_u **tp)
     int
 mb_off_next(char_u *base, char_u *p)
 {
-    int		i;
-    int		j;
+    int		head_off = (*mb_head_off)(base, p);
 
-    if (enc_utf8)
-    {
-	if (*p < 0x80)		// be quick for ASCII
-	    return 0;
+    if (head_off == 0)
+	return 0;
 
-	// Find the next character that isn't 10xx.xxxx
-	for (i = 0; (p[i] & 0xc0) == 0x80; ++i)
-	    ;
-	if (i > 0)
-	{
-	    // Check for illegal sequence.
-	    for (j = 0; p - j > base; ++j)
-		if ((p[-j] & 0xc0) != 0x80)
-		    break;
-	    if (utf8len_tab[p[-j]] != i + j)
-		return 0;
-	}
-	return i;
-    }
-
-    // Only need to check if we're on a trail byte, it doesn't matter if we
-    // want the offset to the next or current character.
-    return (*mb_head_off)(base, p);
+    return (*mb_ptr2len)(p - head_off) - head_off;
 }
 
 /*
@@ -4398,7 +4378,7 @@ mb_adjustpos(buf_T *buf, pos_T *lp)
     if (lp->col > 0 || lp->coladd > 1)
     {
 	p = ml_get_buf(buf, lp->lnum, FALSE);
-	if (*p == NUL || (int)STRLEN(p) < lp->col)
+	if (*p == NUL || ml_get_buf_len(buf, lp->lnum) < lp->col)
 	    lp->col = 0;
 	else
 	    lp->col -= (*mb_head_off)(p, p + lp->col);

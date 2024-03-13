@@ -1300,7 +1300,7 @@ fold_line(
 			&& (lnume < bot->lnum
 			    || (lnume == bot->lnum
 				&& (bot->col - (*p_sel == 'e'))
-		>= (colnr_T)STRLEN(ml_get_buf(wp->w_buffer, lnume, FALSE)))))))
+				    >= ml_get_buf_len(wp->w_buffer, lnume))))))
 	{
 	    if (VIsual_mode == Ctrl_V)
 	    {
@@ -1537,7 +1537,7 @@ win_update(win_T *wp)
 
     // Make sure skipcol is valid, it depends on various options and the window
     // width.
-    if (wp->w_skipcol > 0)
+    if (wp->w_skipcol > 0 && wp->w_width > win_col_off(wp))
     {
 	int w = 0;
 	int width1 = wp->w_width - win_col_off(wp);
