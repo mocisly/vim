@@ -4964,12 +4964,12 @@ qf_fill_buffer(qf_list_T *qfl, buf_T *buf, qfline_T *old_last, int qf_winid)
 						0L, (char_u *)"qf", OPT_LOCAL);
 	curbuf->b_p_ma = FALSE;
 
-	keep_filetype = TRUE;		// don't detect 'filetype'
+	curbuf->b_keep_filetype = TRUE;	// don't detect 'filetype'
 	apply_autocmds(EVENT_BUFREADPOST, (char_u *)"quickfix", NULL,
 							       FALSE, curbuf);
 	apply_autocmds(EVENT_BUFWINENTER, (char_u *)"quickfix", NULL,
 							       FALSE, curbuf);
-	keep_filetype = FALSE;
+	curbuf->b_keep_filetype = FALSE;
 	--curbuf_lock;
 
 	// make sure it will be redrawn
@@ -6203,7 +6203,7 @@ vgr_match_buflines(
 	else
 	{
 	    char_u  *str = ml_get_buf(buf, lnum, FALSE);
-	    int	    line_len = ml_get_buf_len(buf, lnum);
+	    colnr_T linelen = ml_get_buf_len(buf, lnum);
 	    int	    score;
 	    int_u   matches[MAX_FUZZY_MATCHES];
 	    int_u   sz = ARRAY_LENGTH(matches);
@@ -6242,7 +6242,7 @@ vgr_match_buflines(
 		if ((flags & VGR_GLOBAL) == 0)
 		    break;
 		col = matches[pat_len - 1] + col + 1;
-		if (col > line_len)
+		if (col > linelen)
 		    break;
 	    }
 	}
@@ -6612,7 +6612,7 @@ ex_vimgrep(exarg_T *eap)
 	goto theend;
     }
 
-    // Jump to first match if the current window is not 'winfixbuf'
+    // Jump to first match.
     if (!qf_list_empty(qf_get_curlist(qi)))
     {
 	if ((args.flags & VGR_NOJUMP) == 0)

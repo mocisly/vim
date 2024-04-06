@@ -2066,7 +2066,7 @@ nv_page(cmdarg_T *cap)
 	    goto_tabpage((int)cap->count0);
     }
     else
-	(void)onepage(cap->arg, cap->count1);
+	(void)pagescroll(cap->arg, cap->count1, FALSE);
 }
 
 /*
@@ -2303,10 +2303,12 @@ find_decl(
  *
  * Return OK if able to move cursor, FAIL otherwise.
  */
-    static int
+    int
 nv_screengo(oparg_T *oap, int dir, long dist)
 {
-    int		linelen = linetabsize(curwin, curwin->w_cursor.lnum);
+
+    int		linelen = linetabsize_no_outer(curwin, curwin->w_cursor.lnum);
+
     int		retval = OK;
     int		atend = FALSE;
     int		n;
@@ -2376,7 +2378,7 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 		}
 		cursor_up_inner(curwin, 1);
 
-		linelen = linetabsize(curwin, curwin->w_cursor.lnum);
+		linelen = linetabsize_no_outer(curwin, curwin->w_cursor.lnum);
 		if (linelen > width1)
 		    curwin->w_curswant += (((linelen - width1 - 1) / width2)
 								+ 1) * width2;
@@ -2413,7 +2415,7 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 		// clipped to column 0.
 		if (curwin->w_curswant >= width1)
 		    curwin->w_curswant -= width2;
-		linelen = linetabsize(curwin, curwin->w_cursor.lnum);
+		linelen = linetabsize_no_outer(curwin, curwin->w_cursor.lnum);
 	    }
 	}
       }
@@ -5743,7 +5745,7 @@ nv_gv_cmd(cmdarg_T *cap)
  * "g0", "g^" : Like "0" and "^" but for screen lines.
  * "gm": middle of "g0" and "g$".
  */
-    static void
+    void
 nv_g_home_m_cmd(cmdarg_T *cap)
 {
     int		i;
@@ -5769,6 +5771,15 @@ nv_g_home_m_cmd(cmdarg_T *cap)
 	i = 0;
 	if (virtcol >= (colnr_T)width1 && width2 > 0)
 	    i = (virtcol - width1) / width2 * width2 + width1;
+
+	// When ending up below 'smoothscroll' marker, move just beyond it so
+	// that skipcol is not adjusted later.
+	if (curwin->w_skipcol > 0 && curwin->w_cursor.lnum == curwin->w_topline)
+	{
+	    int overlap = sms_marker_overlap(curwin, -1);
+	    if (overlap > 0 && i == curwin->w_skipcol)
+		i += overlap;
+	}
     }
     else
 	i = curwin->w_leftcol;
@@ -6064,7 +6075,7 @@ nv_g_cmd(cmdarg_T *cap)
 	{
 	    oap->motion_type = MCHAR;
 	    oap->inclusive = FALSE;
-	    i = linetabsize(curwin, curwin->w_cursor.lnum);
+	    i = linetabsize_no_outer(curwin, curwin->w_cursor.lnum);
 	    if (cap->count0 > 0 && cap->count0 <= 100)
 		coladvance((colnr_T)(i * cap->count0 / 100));
 	    else
@@ -7261,12 +7272,9 @@ nv_at(cmdarg_T *cap)
     static void
 nv_halfpage(cmdarg_T *cap)
 {
-    if ((cap->cmdchar == Ctrl_U && curwin->w_cursor.lnum == 1)
-	    || (cap->cmdchar == Ctrl_D
-		&& curwin->w_cursor.lnum == curbuf->b_ml.ml_line_count))
-	clearopbeep(cap->oap);
-    else if (!checkclearop(cap->oap))
-	halfpage(cap->cmdchar == Ctrl_D, cap->count0);
+    int	dir = cap->cmdchar == Ctrl_D ? FORWARD : BACKWARD;
+    if (!checkclearop(cap->oap))
+	pagescroll(dir, cap->count0, TRUE);
 }
 
 /*

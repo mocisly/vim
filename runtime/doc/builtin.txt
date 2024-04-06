@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 9.1.  Last change: 2024 Mar 12
+*builtin.txt*	For Vim version 9.1.  Last change: 2024 Apr 04
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1771,7 +1771,7 @@ confirm({msg} [, {choices} [, {default} [, {type}]]])
 		made.  It returns the number of the choice.  For the first
 		choice this is 1.
 		Note: confirm() is only supported when compiled with dialog
-		support, see |+dialog_con| and |+dialog_gui|.
+		support, see |+dialog_con| |+dialog_con_gui| and |+dialog_gui|.
 
 		{msg} is displayed in a |dialog| with {choices} as the
 		alternatives.  When {choices} is missing or empty, "&OK" is
@@ -2265,8 +2265,8 @@ empty({expr})						*empty()*
 		- A |Job| is empty when it failed to start.
 		- A |Channel| is empty when it is closed.
 		- A |Blob| is empty when its length is zero.
-		- An |Object| is empty, when the |empty()| builtin method in
-		  the object (if present) returns true.
+		- An |Object| is empty, when the empty() method in the object
+		  (if present) returns true. |object-empty()|
 
 		For a long |List| this is much faster than comparing the
 		length with zero.
@@ -2307,7 +2307,8 @@ eval({string})	Evaluate {string} and return the result.  Especially useful to
 		turn the result of |string()| back into the original value.
 		This works for Numbers, Floats, Strings, Blobs and composites
 		of them.  Also works for |Funcref|s that refer to existing
-		functions.
+		functions.  In |Vim9| script, it can be used to obtain |enum|
+		values from their fully qualified names.
 
 		Can also be used as a |method|: >
 			argv->join()->eval()
@@ -5485,9 +5486,9 @@ len({expr})	The result is a Number, which is the length of the argument.
 		When {expr} is a |Blob| the number of bytes is returned.
 		When {expr} is a |Dictionary| the number of entries in the
 		|Dictionary| is returned.
-		When {expr} is an |Object|, invokes the |len()| method in the
-		object (if present) to get the length.  Otherwise returns
-		zero.
+		When {expr} is an |Object|, invokes the len() method in the
+		object (if present) to get the length (|object-len()|).
+		Otherwise returns zero.
 
 		Can also be used as a |method|: >
 			mylist->len()
@@ -7104,6 +7105,9 @@ printf({fmt}, {expr1} ...)				*printf()*
 <		    1.4142 >
 		    echo printf("%1$*2$.*3$f", 1.4142135, 6, 2)
 <		      1.41
+
+		You will get an overflow error |E1510|, when the field-width
+		or precision will result in a string longer than 6400 chars.
 
 							*E1500*
 		You cannot mix positional and non-positional arguments: >
@@ -9065,7 +9069,8 @@ slice({expr}, {start} [, {end}])			*slice()*
 		Similar to using a |slice| "expr[start : end]", but "end" is
 		used exclusive.  And for a string the indexes are used as
 		character indexes instead of byte indexes, like in
-		|vim9script|.  Also, composing characters are not counted.
+		|vim9script|.  Also, composing characters are treated as a
+		part of the preceding base character.
 		When {end} is omitted the slice continues to the last item.
 		When {end} is -1 the last item is omitted.
 		Returns an empty value if {start} or {end} are invalid.
@@ -9462,8 +9467,8 @@ strcharpart({src}, {start} [, {len} [, {skipcc}]])		*strcharpart()*
 		of byte index and length.
 		When {skipcc} is omitted or zero, composing characters are
 		counted separately.
-		When {skipcc} set to 1, Composing characters are ignored,
-		similar to  |slice()|.
+		When {skipcc} set to 1, composing characters are treated as a
+		part of the preceding base character, similar to |slice()|.
 		When a character index is used where a character does not
 		exist it is omitted and counted as one character.  For
 		example: >
@@ -9481,7 +9486,7 @@ strchars({string} [, {skipcc}])					*strchars()*
 		in String {string}.
 		When {skipcc} is omitted or zero, composing characters are
 		counted separately.
-		When {skipcc} set to 1, Composing characters are ignored.
+		When {skipcc} set to 1, composing characters are ignored.
 		|strcharlen()| always does this.
 
 		Returns zero on error.
@@ -9594,14 +9599,16 @@ string({expr})	Return {expr} converted to a String.  If {expr} is a Number,
 			Dictionary	{key: value, key: value}
 			Class		class SomeName
 			Object		object of SomeName {lnum: 1, col: 3}
+			Enum		enum EnumName
+			EnumValue	enum name.value {name: str, ordinal: nr}
 
 		When a |List| or |Dictionary| has a recursive reference it is
 		replaced by "[...]" or "{...}".  Using eval() on the result
 		will then fail.
 
-		For an object, invokes the |string()| method to get a textual
+		For an object, invokes the string() method to get a textual
 		representation of the object.  If the method is not present,
-		then the default representation is used.
+		then the default representation is used. |object-string()|
 
 		Can also be used as a |method|: >
 			mylist->string()
@@ -10457,6 +10464,8 @@ type({expr})	The result is a Number representing the type of {expr}.
 			Class:	   12  |v:t_class|
 			Object:	   13  |v:t_object|
 			Typealias: 14  |v:t_typealias|
+			Enum:	   15  |v:t_enum|
+			EnumValue: 16  |v:t_enumvalue|
 		For backward compatibility, this method can be used: >
 			:if type(myvar) == type(0)
 			:if type(myvar) == type("")
@@ -10829,8 +10838,7 @@ win_screenpos({nr})					*win_screenpos()*
 		[1, 1], unless there is a tabline, then it is [2, 1].
 		{nr} can be the window number or the |window-ID|.  Use zero
 		for the current window.
-		Returns [0, 0] if the window cannot be found in the current
-		tabpage.
+		Returns [0, 0] if the window cannot be found.
 
 		Can also be used as a |method|: >
 			GetWinid()->win_screenpos()
@@ -11192,6 +11200,7 @@ cscope			Compiled with |cscope| support.
 cursorbind		Compiled with |'cursorbind'| (always true)
 debug			Compiled with "DEBUG" defined.
 dialog_con		Compiled with console dialog support.
+dialog_con_gui		Compiled with console and GUI dialog support.
 dialog_gui		Compiled with GUI dialog support.
 diff			Compiled with |vimdiff| and 'diff' support.
 digraphs		Compiled with support for digraphs.

@@ -4906,7 +4906,7 @@ def Test_for_stmt_space_before_type()
   v9.CheckSourceFailure(lines, 'E1059: No white space allowed before colon: :number in range(10)', 2)
 enddef
 
-" This test used to cause an use-after-free memory access
+" This test used to cause a use-after-free memory access
 def Test_for_empty_line_after_lambda()
   var lines =<< trim END
     vim9script
@@ -4927,6 +4927,16 @@ def Test_for_empty_line_after_lambda()
     }) # comment
 
     assert_equal('[1, 1] [2, 2]', v:statusmsg)
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for evaluating a lambda block from a string
+def Test_eval_lambda_block()
+  var lines =<< trim END
+    vim9script
+    var Fn = eval("(x: number): number => {\nreturn x * 2\n}")
+    assert_equal(6, Fn(3))
   END
   v9.CheckSourceSuccess(lines)
 enddef
