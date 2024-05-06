@@ -1140,6 +1140,182 @@ def Test_autoload_import_relative()
   v9.CheckScriptFailure(lines, 'E484:')
 enddef
 
+" autoload relative, access from compiled function.
+" Github issues: #14565, #14579
+def Test_autoload_import_relative_compiled_buffer()
+  var lines =<< trim END
+    vim9script
+
+    export def F1(): string
+        return 'InFile.vim'
+    enddef
+  END
+  writefile(lines, 'Ximportrelativebuffer.vim', 'D')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Ximportrelativebuffer.vim' as xfile
+
+    def F(): string
+      return xfile.F1()
+    enddef
+    assert_equal('InFile.vim', F())
+  END
+  new
+  setline(1, lines)
+  :source
+  # source one more time to detect issues with clearing the script state and
+  # variables
+  :source
+  :bw!
+enddef
+
+" Test for relative import when sourcing a buffer in another directory
+def Test_autoload_import_relative_from_buffer_in_dir()
+  mkdir('Ximportrelative/dir1/dir2', 'pR')
+  var lines =<< trim END
+    vim9script
+
+    export def F1(): string
+        return 'InFile.vim'
+    enddef
+  END
+  writefile(lines, 'Ximportrelative/dir1/dir2/Ximport.vim')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Ximport.vim' as xfile
+
+    def F(): string
+      return xfile.F1()
+    enddef
+    assert_equal('InFile.vim', F())
+  END
+  writefile(lines, 'Ximportrelative/dir1/dir2/Xrelative.vim')
+
+  split Ximportrelative/dir1/dir2/Xrelative.vim
+  :source
+  # source one more time to detect issues with clearing the script state and
+  # variables
+  :source
+  :bw!
+enddef
+
+" Test modifying exported autoload variable. Github issue: #14591
+def Test_autoload_export_variables()
+  mkdir('Xautoload_vars/autoload', 'pR')
+  var lines =<< trim END
+    vim9script
+    g:Xautoload_vars_autoload = true
+    export var val = 11
+    val = 42
+  END
+
+  # Test that the imported script, above, can modify the exported variable;
+  # and test that the importing script, below, can modify the variable.
+  writefile(lines, 'Xautoload_vars/autoload/Xauto_vars_f2.vim', 'D')
+  lines =<< trim END
+    vim9script
+    g:Xautoload_vars_autoload = false
+
+    import autoload './Xautoload_vars/autoload/Xauto_vars_f2.vim' as f2
+    # Verify that the import statement does not load the file.
+    assert_equal(false, g:Xautoload_vars_autoload)
+
+    def F(): number
+      return f2.val
+    enddef
+    # Verify compile does not load the file.
+    defcompile F
+    assert_equal(false, g:Xautoload_vars_autoload)
+
+    # load the file by accessing the exported variable
+    assert_equal(42, F())
+    assert_equal(true, g:Xautoload_vars_autoload)
+    unlet g:Xautoload_vars_autoload
+
+    assert_equal(42, f2.val)
+    f2.val = 17
+    assert_equal(17, f2.val)
+
+    def G()
+      f2.val = 19
+    enddef
+    G()
+    assert_equal(19, f2.val)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Test const var is not modifiable.
+  lines =<< trim END
+    vim9script
+    export const val = 11
+    val = 42
+  END
+  writefile(lines, 'Xautoload_vars/autoload/Xauto_vars_f3.vim', 'D')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Xautoload_vars/autoload/Xauto_vars_f3.vim' as f3
+
+    var x = f3.val
+  END
+  v9.CheckScriptFailure(lines, 'E46:')
+
+  # Test const var is not modifiable from importing script.
+  lines =<< trim END
+    vim9script
+    export const val = 11
+  END
+  writefile(lines, 'Xautoload_vars/autoload/Xauto_vars_f4.vim', 'D')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Xautoload_vars/autoload/Xauto_vars_f4.vim' as f4
+
+    f4.val = 13
+  END
+  v9.CheckScriptFailure(lines, 'E46:')
+
+  # Test const var is not modifiable from importing script from :def.
+  # Github issue: #14606
+  lines =<< trim END
+    vim9script
+    export const val = 11
+  END
+  writefile(lines, 'Xautoload_vars/autoload/Xauto_vars_f5.vim', 'D')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Xautoload_vars/autoload/Xauto_vars_f5.vim' as f5
+
+    def F()
+      f5.val = 13
+    enddef
+    F()
+  END
+  v9.CheckScriptFailure(lines, 'E741:')
+
+  # Still part of Github issue: #14606
+  lines =<< trim END
+    vim9script
+    export var val = 11
+  END
+  writefile(lines, 'Xautoload_vars/autoload/Xauto_vars_f6.vim', 'D')
+  lines =<< trim END
+    vim9script
+
+    import autoload './Xautoload_vars/autoload/Xauto_vars_f6.vim' as f6
+
+    def F()
+      f6.val = 13
+    enddef
+    F()
+    assert_equal(13, f6.val)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
 def Test_autoload_import_relative_autoload_dir()
   mkdir('autoload', 'pR')
   var lines =<< trim END
@@ -2930,6 +3106,33 @@ def Test_vim9_import_symlink()
     unlet g:resultValue
     &rtp = save_rtp
     delete('Xfrom', 'rf')
+
+    # Access item from :def imported through symbolic linked directory. #14536
+    mkdir('Xto/real_dir', 'pR')
+    lines =<< trim END
+        vim9script
+        export const val = 17
+        export def F(): number
+          return 23
+        enddef
+    END
+    writefile(lines, 'Xto/real_dir/real_file.vim')
+    system('ln -s real_dir Xto/syml_dir')
+    defer delete('Xto/syml_dir')
+    lines =<< trim END
+      vim9script
+      import autoload './Xto/syml_dir/real_file.vim'
+
+      def Fmain()
+        assert_equal(17, real_file.val)
+      enddef
+      def F2()
+        assert_equal(23, real_file.F())
+      enddef
+      Fmain()
+      F2()
+    END
+    v9.CheckScriptSuccess(lines)
   endif
 enddef
 

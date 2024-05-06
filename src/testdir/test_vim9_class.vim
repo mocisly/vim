@@ -67,6 +67,54 @@ def Test_class_basic()
   END
   v9.CheckSourceFailure(lines, "E488: Trailing characters: | echo 'done'", 3)
 
+  # Additional command after "class name"
+  lines =<< trim END
+    vim9script
+    class Something | var x = 10
+    endclass
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var x = 10", 2)
+
+  # Additional command after "object variable"
+  lines =<< trim END
+    vim9script
+    class Something
+      var l: list<number> = [] | var y = 10
+    endclass
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var y = 10", 3)
+
+  # Additional command after "class variable"
+  lines =<< trim END
+    vim9script
+    class Something
+      static var d = {a: 10} | var y = 10
+    endclass
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var y = 10", 3)
+
+  # Additional command after "object method"
+  lines =<< trim END
+    vim9script
+    class Something
+      def Foo() | var y = 10
+      enddef
+    endclass
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var y = 10", 3)
+
+  # Comments are allowed after an inline block
+  lines =<< trim END
+    vim9script
+    class Foo
+      static const bar = { # {{{
+        baz: 'qux'
+      } # }}}
+    endclass
+    assert_equal({baz: 'qux'}, Foo.bar)
+  END
+  v9.CheckSourceSuccess(lines)
+
   # Try to define a class with the same name as an existing variable
   lines =<< trim END
     vim9script
@@ -400,7 +448,7 @@ def Test_class_def_method()
       enddef
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1331: Public must be followed by "var" or "static"', 3)
+  v9.CheckSourceFailure(lines, 'E1388: public keyword not supported for a method', 3)
 
   # Using the "public" keyword when defining a class method
   lines =<< trim END
@@ -410,7 +458,7 @@ def Test_class_def_method()
       enddef
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1388: Public keyword not supported for a method', 3)
+  v9.CheckSourceFailure(lines, 'E1388: public keyword not supported for a method', 3)
 
   # Using the "public" keyword when defining an object protected method
   lines =<< trim END
@@ -420,7 +468,7 @@ def Test_class_def_method()
       enddef
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1331: Public must be followed by "var" or "static"', 3)
+  v9.CheckSourceFailure(lines, 'E1388: public keyword not supported for a method', 3)
 
   # Using the "public" keyword when defining a class protected method
   lines =<< trim END
@@ -430,7 +478,7 @@ def Test_class_def_method()
       enddef
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1388: Public keyword not supported for a method', 3)
+  v9.CheckSourceFailure(lines, 'E1388: public keyword not supported for a method', 3)
 
   # Using a "def" keyword without an object method name
   lines =<< trim END
@@ -497,6 +545,28 @@ def Test_using_null_class()
     @_ = null_class.member
   END
   v9.CheckDefExecAndScriptFailure(lines, ['E715: Dictionary required', 'E1363: Incomplete type'])
+
+  # Test for using a null class as a value
+  lines =<< trim END
+    vim9script
+    echo empty(null_class)
+  END
+  v9.CheckSourceFailure(lines, 'E1405: Class "" cannot be used as a value', 2)
+
+  # Test for using a null class with string()
+  lines =<< trim END
+    vim9script
+    assert_equal('class [unknown]', string(null_class))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Test for using a null class with type() and typename()
+  lines =<< trim END
+    vim9script
+    assert_equal(12, type(null_class))
+    assert_equal('class<Unknown>', typename(null_class))
+  END
+  v9.CheckSourceSuccess(lines)
 enddef
 
 def Test_class_interface_wrong_end()
@@ -1191,7 +1261,7 @@ def Test_instance_variable_access()
       public var _val = 10
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1332: Public variable name cannot start with underscore: public var _val = 10', 3)
+  v9.CheckSourceFailure(lines, 'E1332: public variable name cannot start with underscore: public var _val = 10', 3)
 
   lines =<< trim END
     vim9script
@@ -1287,7 +1357,7 @@ def Test_instance_variable_access()
       public val = 1
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1331: Public must be followed by "var" or "static"', 3)
+  v9.CheckSourceFailure(lines, 'E1331: public must be followed by "var" or "static"', 3)
 
   # Modify a instance variable using the class name in the script context
   lines =<< trim END
@@ -2236,6 +2306,14 @@ def Test_interface_basics()
     endinterface
   END
   v9.CheckSourceFailure(lines, 'E1345: Not a valid command in an interface: return 5', 6)
+
+  # Additional commands after "interface name"
+  lines =<< trim END
+    vim9script
+    interface Something | var x = 10 | var y = 20
+    endinterface
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var x = 10", 2)
 
   lines =<< trim END
     vim9script
@@ -3232,6 +3310,14 @@ def Test_abstract_class()
     endclass
   END
   v9.CheckSourceFailure(lines, 'E1316: Class can only be defined in Vim9 script', 1)
+
+  # Additional commands after "abstract class"
+  lines =<< trim END
+    vim9script
+    abstract class Something | var x = []
+    endclass
+  END
+  v9.CheckSourceFailure(lines, "E488: Trailing characters: | var x = []", 2)
 
   # Abstract class cannot have a "new" function
   lines =<< trim END
@@ -6537,7 +6623,7 @@ def Test_interface_with_unsupported_members()
       public static var num: number
     endinterface
   END
-  v9.CheckSourceFailure(lines, 'E1387: Public variable not supported in an interface', 3)
+  v9.CheckSourceFailure(lines, 'E1387: public variable not supported in an interface', 3)
 
   lines =<< trim END
     vim9script
@@ -6545,7 +6631,7 @@ def Test_interface_with_unsupported_members()
       public static var num: number
     endinterface
   END
-  v9.CheckSourceFailure(lines, 'E1387: Public variable not supported in an interface', 3)
+  v9.CheckSourceFailure(lines, 'E1387: public variable not supported in an interface', 3)
 
   lines =<< trim END
     vim9script
@@ -10581,6 +10667,61 @@ def Test_lambda_block_in_class()
     assert_equal(16, IdClass2.Id(8))
   END
   v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for defcompiling an abstract method
+def Test_abstract_method_defcompile()
+  # Compile an abstract class with abstract object methods
+  var lines =<< trim END
+    vim9script
+    abstract class A
+      abstract def Foo(): string
+      abstract def Bar(): list<string>
+    endclass
+    defcompile
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Compile a concrete object method in an abstract class
+  lines =<< trim END
+    vim9script
+    abstract class A
+      abstract def Foo(): string
+      abstract def Bar(): list<string>
+      def Baz(): string
+        pass
+      enddef
+    endclass
+    defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E476: Invalid command: pass', 1)
+
+  # Compile a concrete class method in an abstract class
+  lines =<< trim END
+    vim9script
+    abstract class A
+      abstract def Foo(): string
+      abstract def Bar(): list<string>
+      static def Baz(): string
+        pass
+      enddef
+    endclass
+    defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E476: Invalid command: pass', 1)
+enddef
+
+" Test for defining a class in a function
+def Test_class_definition_in_a_function()
+  var lines =<< trim END
+    vim9script
+    def Foo()
+      class A
+      endclass
+    enddef
+    defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E1429: Class can only be used in a script', 1)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

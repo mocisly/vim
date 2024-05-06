@@ -1708,6 +1708,7 @@ add_to_showcmd(int c)
     int		extra_len;
     int		overflow;
     int		i;
+    char_u	mbyte_buf[MB_MAXBYTES];
     static int	ignore[] =
     {
 #ifdef FEAT_GUI
@@ -1739,9 +1740,17 @@ add_to_showcmd(int c)
 	    if (ignore[i] == c)
 		return FALSE;
 
-    p = transchar(c);
-    if (*p == ' ')
-	STRCPY(p, "<20>");
+    if (c <= 0x7f || !vim_isprintc(c))
+    {
+	p = transchar(c);
+	if (*p == ' ')
+	    STRCPY(p, "<20>");
+    }
+    else
+    {
+	mbyte_buf[(*mb_char2bytes)(c, mbyte_buf)] = NUL;
+	p = mbyte_buf;
+    }
     old_len = (int)STRLEN(showcmd_buf);
     extra_len = (int)STRLEN(p);
     overflow = old_len + extra_len - SHOWCMD_COLS;
@@ -1810,7 +1819,7 @@ pop_showcmd(void)
     static void
 display_showcmd(void)
 {
-    int	    len = (int)STRLEN(showcmd_buf);
+    int	    len = vim_strsize(showcmd_buf);
 
     showcmd_is_clear = (len == 0);
     cursor_off();
@@ -2471,65 +2480,6 @@ nv_scroll_line(cmdarg_T *cap)
 {
     if (!checkclearop(cap->oap))
 	scroll_redraw(cap->arg, cap->count1);
-}
-
-/*
- * Scroll "count" lines up or down, and redraw.
- */
-    void
-scroll_redraw(int up, long count)
-{
-    linenr_T	prev_topline = curwin->w_topline;
-    int		prev_skipcol = curwin->w_skipcol;
-#ifdef FEAT_DIFF
-    int		prev_topfill = curwin->w_topfill;
-#endif
-    linenr_T	prev_lnum = curwin->w_cursor.lnum;
-
-    if (up)
-	scrollup(count, TRUE);
-    else
-	scrolldown(count, TRUE);
-    if (get_scrolloff_value() > 0)
-    {
-	// Adjust the cursor position for 'scrolloff'.  Mark w_topline as
-	// valid, otherwise the screen jumps back at the end of the file.
-	cursor_correct();
-	check_cursor_moved(curwin);
-	curwin->w_valid |= VALID_TOPLINE;
-
-	// If moved back to where we were, at least move the cursor, otherwise
-	// we get stuck at one position.  Don't move the cursor up if the
-	// first line of the buffer is already on the screen
-	while (curwin->w_topline == prev_topline
-		&& curwin->w_skipcol == prev_skipcol
-#ifdef FEAT_DIFF
-		&& curwin->w_topfill == prev_topfill
-#endif
-		)
-	{
-	    if (up)
-	    {
-		if (curwin->w_cursor.lnum > prev_lnum
-			|| cursor_down(1L, FALSE) == FAIL)
-		    break;
-	    }
-	    else
-	    {
-		if (curwin->w_cursor.lnum < prev_lnum
-			|| prev_topline == 1L
-			|| cursor_up(1L, FALSE) == FAIL)
-		    break;
-	    }
-	    // Mark w_topline as valid, otherwise the screen jumps back at the
-	    // end of the file.
-	    check_cursor_moved(curwin);
-	    curwin->w_valid |= VALID_TOPLINE;
-	}
-    }
-    if (curwin->w_cursor.lnum != prev_lnum)
-	coladvance(curwin->w_curswant);
-    redraw_later(UPD_VALID);
 }
 
 /*
