@@ -417,6 +417,7 @@ set(Source_Files
     "src/float.c"
     "src/fold.c"
     "src/getchar.c"
+    "src/gc.c"
     "src/gui.c"
     "src/gui_beval.c"
     "src/gui_dwrite.cpp"
