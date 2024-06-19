@@ -669,6 +669,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     smith: ['file.smt', 'file.smith'],
     smithy: ['file.smithy'],
     sml: ['file.sml'],
+    snakemake: ['file.smk', 'Snakefile'],
     snobol4: ['file.sno', 'file.spt'],
     solidity: ['file.sol'],
     solution: ['file.sln'],
@@ -993,6 +994,7 @@ def s:GetScriptChecks(): dict<list<list<string>>>
             ['#!/path/regina']],
     janet:  [['#!/path/janet']],
     dart:   [['#!/path/dart']],
+    vim:    [['#!/path/vim']],
   }
 enddef
 

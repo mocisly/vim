@@ -6532,6 +6532,7 @@ compiler-dotnet	quickfix.txt	/*compiler-dotnet*
 compiler-gcc	quickfix.txt	/*compiler-gcc*
 compiler-gnat	ft_ada.txt	/*compiler-gnat*
 compiler-hpada	ft_ada.txt	/*compiler-hpada*
+compiler-javac	quickfix.txt	/*compiler-javac*
 compiler-manx	quickfix.txt	/*compiler-manx*
 compiler-pandoc	quickfix.txt	/*compiler-pandoc*
 compiler-perl	quickfix.txt	/*compiler-perl*
@@ -7709,6 +7710,7 @@ g:vim_indent	indent.txt	/*g:vim_indent*
 g:vim_indent_cont	indent.txt	/*g:vim_indent_cont*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
 g:vimball_mkdir	pi_vimball.txt	/*g:vimball_mkdir*
+g:vimsyn_comment_strings	syntax.txt	/*g:vimsyn_comment_strings*
 g:vimsyn_embed	syntax.txt	/*g:vimsyn_embed*
 g:vimsyn_folding	syntax.txt	/*g:vimsyn_folding*
 g:vimsyn_maxlines	syntax.txt	/*g:vimsyn_maxlines*
@@ -8090,6 +8092,8 @@ hl-PmenuExtra	syntax.txt	/*hl-PmenuExtra*
 hl-PmenuExtraSel	syntax.txt	/*hl-PmenuExtraSel*
 hl-PmenuKind	syntax.txt	/*hl-PmenuKind*
 hl-PmenuKindSel	syntax.txt	/*hl-PmenuKindSel*
+hl-PmenuMatch	syntax.txt	/*hl-PmenuMatch*
+hl-PmenuMatchSel	syntax.txt	/*hl-PmenuMatchSel*
 hl-PmenuSbar	syntax.txt	/*hl-PmenuSbar*
 hl-PmenuSel	syntax.txt	/*hl-PmenuSel*
 hl-PmenuThumb	syntax.txt	/*hl-PmenuThumb*
@@ -9174,6 +9178,8 @@ no_buffers_menu	gui.txt	/*no_buffers_menu*
 no_mail_maps	filetype.txt	/*no_mail_maps*
 no_plugin_maps	filetype.txt	/*no_plugin_maps*
 nocombine	syntax.txt	/*nocombine*
+nohlsearch-auto	pattern.txt	/*nohlsearch-auto*
+nohlsearch-install	usr_05.txt	/*nohlsearch-install*
 non-greedy	pattern.txt	/*non-greedy*
 non-zero-arg	eval.txt	/*non-zero-arg*
 none-function_argument	userfunc.txt	/*none-function_argument*
@@ -9427,6 +9433,7 @@ popup_menu()	popup.txt	/*popup_menu()*
 popup_menu-shortcut-example	popup.txt	/*popup_menu-shortcut-example*
 popup_move()	popup.txt	/*popup_move()*
 popup_notification()	popup.txt	/*popup_notification()*
+popup_setbuf()	popup.txt	/*popup_setbuf()*
 popup_setoptions()	popup.txt	/*popup_setoptions()*
 popup_settext()	popup.txt	/*popup_settext()*
 popup_show()	popup.txt	/*popup_show()*
@@ -10694,7 +10701,9 @@ text-functions	usr_41.txt	/*text-functions*
 text-objects	motion.txt	/*text-objects*
 text-objects-changed	version5.txt	/*text-objects-changed*
 text-prop-changes	textprop.txt	/*text-prop-changes*
+text-prop-cleared	textprop.txt	/*text-prop-cleared*
 text-prop-functions	textprop.txt	/*text-prop-functions*
+text-prop-functions-details	textprop.txt	/*text-prop-functions-details*
 text-prop-intro	textprop.txt	/*text-prop-intro*
 text-properties	textprop.txt	/*text-properties*
 text-property-functions	usr_41.txt	/*text-property-functions*
@@ -11157,6 +11166,7 @@ vim-raku	ft_raku.txt	/*vim-raku*
 vim-script-intro	usr_41.txt	/*vim-script-intro*
 vim-script-library	eval.txt	/*vim-script-library*
 vim-security	intro.txt	/*vim-security*
+vim-shebang	various.txt	/*vim-shebang*
 vim-use	intro.txt	/*vim-use*
 vim-variable	eval.txt	/*vim-variable*
 vim.b	if_lua.txt	/*vim.b*
