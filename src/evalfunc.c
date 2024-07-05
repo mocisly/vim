@@ -28,6 +28,7 @@ static void f_balloon_show(typval_T *argvars, typval_T *rettv);
 static void f_balloon_split(typval_T *argvars, typval_T *rettv);
 # endif
 #endif
+static void f_bindtextdomain(typval_T *argvars, typval_T *rettv);
 static void f_byte2line(typval_T *argvars, typval_T *rettv);
 static void f_call(typval_T *argvars, typval_T *rettv);
 static void f_changenr(typval_T *argvars, typval_T *rettv);
@@ -1824,6 +1825,8 @@ static funcentry_T global_functions[] =
 	    NULL
 #endif
 			},
+    {"bindtextdomain",	2, 2, 0,	    arg2_string,
+			ret_void,	    f_bindtextdomain},
     {"blob2list",	1, 1, FEARG_1,	    arg1_blob,
 			ret_list_number,    f_blob2list},
     {"browse",		4, 4, 0,	    arg4_browse,
@@ -2154,7 +2157,7 @@ static funcentry_T global_functions[] =
 			ret_any,	    f_gettabwinvar},
     {"gettagstack",	0, 1, FEARG_1,	    arg1_number,
 			ret_dict_any,	    f_gettagstack},
-    {"gettext",		1, 1, FEARG_1,	    arg1_string,
+    {"gettext",		1, 2, FEARG_1,	    arg2_string,
 			ret_string,	    f_gettext},
     {"getwininfo",	0, 1, FEARG_1,	    arg1_number,
 			ret_list_dict_any,  f_getwininfo},
@@ -3474,6 +3477,24 @@ get_buf_arg(typval_T *arg)
     if (buf == NULL)
 	semsg(_(e_invalid_buffer_name_str), tv_get_string(arg));
     return buf;
+}
+
+/*
+ * "bindtextdomain(package, path)" function
+ */
+    static void
+f_bindtextdomain(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    if (check_for_nonempty_string_arg(argvars, 0) == FAIL
+	    || check_for_nonempty_string_arg(argvars, 1) == FAIL)
+	return;
+
+    if (strcmp((const char *)argvars[0].vval.v_string, VIMPACKAGE) == 0)
+	semsg(_(e_invalid_argument_str), tv_get_string(&argvars[0]));
+    else
+	bindtextdomain((const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string);
+
+    return;
 }
 
 /*
@@ -6033,11 +6054,39 @@ f_gettagstack(typval_T *argvars, typval_T *rettv)
     static void
 f_gettext(typval_T *argvars, typval_T *rettv)
 {
-    if (check_for_nonempty_string_arg(argvars, 0) == FAIL)
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+    char *prev = NULL;
+#endif
+
+    if (check_for_nonempty_string_arg(argvars, 0) == FAIL
+	|| check_for_opt_string_arg(argvars, 1) == FAIL)
 	return;
 
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = vim_strsave((char_u *)_(argvars[0].vval.v_string));
+
+    if (argvars[1].v_type == VAR_STRING &&
+	    argvars[1].vval.v_string != NULL &&
+	    *(argvars[1].vval.v_string) != NUL)
+    {
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+	prev = bind_textdomain_codeset((const char *)argvars[1].vval.v_string, (char *)p_enc);
+#endif
+
+#if defined(HAVE_DGETTEXT)
+	rettv->vval.v_string = vim_strsave((char_u *)dgettext((const char *)argvars[1].vval.v_string, (const char *)argvars[0].vval.v_string));
+#else
+	textdomain((const char *)argvars[1].vval.v_string);
+	rettv->vval.v_string = vim_strsave((char_u *)_(argvars[0].vval.v_string));
+	textdomain(VIMPACKAGE);
+#endif
+
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+	if (prev != NULL)
+	    bind_textdomain_codeset((const char *)argvars[1].vval.v_string, prev);
+#endif
+    }
+    else
+	rettv->vval.v_string = vim_strsave((char_u *)_(argvars[0].vval.v_string));
 }
 
 // for VIM_VERSION_ defines
@@ -7486,7 +7535,7 @@ f_index(typval_T *argvars, typval_T *rettv)
 	{
 	    tv.v_type = VAR_NUMBER;
 	    tv.vval.v_number = blob_get(b, idx);
-	    if (tv_equal(&tv, &argvars[1], ic, FALSE))
+	    if (tv_equal(&tv, &argvars[1], ic))
 	    {
 		rettv->vval.v_number = idx;
 		return;
@@ -7519,7 +7568,7 @@ f_index(typval_T *argvars, typval_T *rettv)
     }
 
     for ( ; item != NULL; item = item->li_next, ++idx)
-	if (tv_equal(&item->li_tv, &argvars[1], ic, FALSE))
+	if (tv_equal(&item->li_tv, &argvars[1], ic))
 	{
 	    rettv->vval.v_number = idx;
 	    break;
@@ -9218,69 +9267,47 @@ f_test_srand_seed(typval_T *argvars, typval_T *rettv UNUSED)
     static void
 init_srand(UINT32_T *x)
 {
-#ifndef MSWIN
-    static int dev_urandom_state = NOTDONE;  // FAIL or OK once tried
-#endif
+    struct {
+	union {
+	    UINT32_T number;
+	    char_u   bytes[sizeof(UINT32_T)];
+	} contents;
+    } buf;
 
     if (srand_seed_for_testing_is_used)
     {
 	*x = srand_seed_for_testing;
 	return;
     }
-#ifndef MSWIN
-    if (dev_urandom_state != FAIL)
-    {
-	int  fd = open("/dev/urandom", O_RDONLY);
-	struct {
-	    union {
-		UINT32_T number;
-		char     bytes[sizeof(UINT32_T)];
-	    } contents;
-	} buf;
 
-	// Attempt reading /dev/urandom.
-	if (fd == -1)
-	    dev_urandom_state = FAIL;
-	else
-	{
-	    buf.contents.number = 0;
-	    if (read(fd, buf.contents.bytes, sizeof(UINT32_T))
-							   != sizeof(UINT32_T))
-		dev_urandom_state = FAIL;
-	    else
-	    {
-		dev_urandom_state = OK;
-		*x = buf.contents.number;
-	    }
-	    close(fd);
-	}
+    if (mch_get_random(buf.contents.bytes, sizeof(buf.contents.bytes)) == OK)
+    {
+	*x = buf.contents.number;
+	return;
     }
-    if (dev_urandom_state != OK)
+
+    // The system's random number generator doesn't work, fall back to:
+    // - randombytes_random()
+    // - reltime() or time()
+    // - XOR with process ID
+#if defined(FEAT_SODIUM)
+    if (crypt_sodium_init() >= 0)
+	*x = crypt_sodium_randombytes_random();
+    else
 #endif
     {
-	// Reading /dev/urandom doesn't work, fall back to:
-	// - randombytes_random()
-	// - reltime() or time()
-	// - XOR with process ID
-#if defined(FEAT_SODIUM)
-	if (crypt_sodium_init() >= 0)
-	    *x = crypt_sodium_randombytes_random();
-	else
-#endif
-	{
 #if defined(FEAT_RELTIME)
-	    proftime_T res;
-	    profile_start(&res);
+	proftime_T res;
+	profile_start(&res);
 #  if defined(MSWIN)
-	    *x = (UINT32_T)res.LowPart;
+	*x = (UINT32_T)res.LowPart;
 #  else
-	    *x = (UINT32_T)res.tv_fsec;
+	*x = (UINT32_T)res.tv_fsec;
 #  endif
 #else
-	    *x = vim_time();
+	*x = vim_time();
 #endif
-	    *x ^= mch_get_pid();
-	}
+	*x ^= mch_get_pid();
     }
 }
 
