@@ -2586,7 +2586,7 @@ func Test_complete_fuzzy_match()
   call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
   call assert_equal('hello help hero h', getline('.'))
 
-  set completeopt=fuzzycollect
+  set completeopt-=noinsert
   call setline(1, ['xyz  yxz  x'])
   call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
   call assert_equal('xyz  yxz  xyz', getline('.'))
@@ -2594,10 +2594,6 @@ func Test_complete_fuzzy_match()
   call setline(1, ['xyz  yxz  x'])
   call feedkeys("A\<C-X>\<C-N>\<C-N>\<Esc>0", 'tx!')
   call assert_equal('xyz  yxz  yxz', getline('.'))
-
-  call setline(1, ['one two o'])
-  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
-  call assert_equal('one two one', getline('.'))
 
   call setline(1, ['你好 你'])
   call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
@@ -2610,15 +2606,57 @@ func Test_complete_fuzzy_match()
   call feedkeys("A\<C-X>\<C-N>\<C-N>\<Esc>0", 'tx!')
   call assert_equal('你的 我的 我的', getline('.'))
 
-  "respect noinsert
-  set completeopt=fuzzycollect,menu,menuone,noinsert
-  call setline(1, ['one two o'])
-  call feedkeys("A\<C-X>\<C-N>", 'tx')
-  call assert_equal('one', g:word)
-  call assert_equal('one two o', getline('.'))
+  " respect wrapscan
+  set nowrapscan
+  call setline(1, ["xyz", "yxz", ""])
+  call cursor(3, 1)
+  call feedkeys("Sy\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('y', getline('.'))
+  set wrapscan
+  call feedkeys("Sy\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('xyz', getline('.'))
+
+  " fuzzy on file
+  call writefile([''], 'fobar', 'D')
+  call writefile([''], 'foobar', 'D')
+  call setline(1, ['fob'])
+  call cursor(1, 1)
+  call feedkeys("A\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_equal('fobar', getline('.'))
+  call feedkeys("Sfob\<C-X>\<C-f>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('foobar', getline('.'))
+  call feedkeys("S../\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_match('../*', getline('.'))
+  call feedkeys("S../td\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_match('../testdir', getline('.'))
+
+  " can get completion from other buffer
+  set completeopt=fuzzy,menu,menuone
+  vnew
+  call setline(1, ["completeness,", "compatibility", "Composite", "Omnipotent"])
+  wincmd p
+  call feedkeys("Somp\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('completeness', getline('.'))
+  call feedkeys("Somp\<C-N>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('compatibility', getline('.'))
+  call feedkeys("Somp\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('Omnipotent', getline('.'))
+  call feedkeys("Somp\<C-P>\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('Composite', getline('.'))
+  call feedkeys("S omp\<C-N>\<Esc>0", 'tx!')
+  call assert_equal(' completeness', getline('.'))
+
+  " fuzzy on whole line completion
+  call setline(1, ["world is on fire", "no one can save me but you", 'user can execute', ''])
+  call cursor(4, 1)
+  call feedkeys("Swio\<C-X>\<C-L>\<Esc>0", 'tx!')
+  call assert_equal('world is on fire', getline('.'))
+  call feedkeys("Su\<C-X>\<C-L>\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('no one can save me but you', getline('.'))
 
   " clean up
   set omnifunc=
+  bw!
   bw!
   set complete& completeopt&
   autocmd! AAAAA_Group
@@ -2648,6 +2686,16 @@ func Test_complete_fuzzy_match_tie()
 
   bwipe!
   set completeopt&
+endfunc
+
+func Test_complete_backwards_default()
+  new
+  call append(1, ['foobar', 'foobaz'])
+  new
+  call feedkeys("i\<c-p>", 'tx')
+  call assert_equal('foobaz', getline('.'))
+  bw!
+  bw!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 9.1.  Last change: 2024 Jul 07
+*autocmd.txt*   For Vim version 9.1.  Last change: 2024 Jul 17
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -54,20 +54,20 @@ Recommended use:
   without the autocommand being repeated.
 
 Example in Vim9 script: >
-   autocmd_add({replace: true,
+   autocmd_add([{replace: true,
 		group:   'DemoGroup',
 		event:   'BufEnter',
 		pattern: '*.txt',
 		cmd:     'call DemoBufEnter()'
-		})
+		}])
 
 In legacy script: >
-   call autocmd_add(#{replace: v:true,
+   call autocmd_add([#{replace: v:true,
 		    \ group: 'DemoGroup',
 		    \ event: 'BufEnter',
 		    \ pattern: '*.txt',
 		    \ cmd: 'call DemoBufEnter()'
-		    \ })
+		    \ }])
 
 ==============================================================================
 2. Defining autocommands				*autocmd-define*
@@ -438,6 +438,8 @@ Name			triggered by ~
 			info
 |CompleteDone|		after Insert mode completion is done, after clearing
 			info
+
+|KeyInputPre|		just before a key is processed
 
 |User|			to be used in combination with ":doautocmd"
 |SigUSR1|		after the SIGUSR1 signal has been detected
@@ -977,6 +979,23 @@ InsertLeavePre			Just before leaving Insert mode.  Also when
 							*InsertLeave*
 InsertLeave			Just after leaving Insert mode.  Also when
 				using CTRL-O |i_CTRL-O|.  But not for |i_CTRL-C|.
+							*KeyInputPre*
+KeyInputPre			Just before a key is processed after mappings
+				have been applied. The pattern is matched
+				against a string that indicates the current
+				mode, which is the same as what is returned by
+				`mode(1)`.
+				The |v:char| variable indicates the key typed
+				and can be changed during the event to process
+				a different key.  When |v:char| is not a
+				single character or a special key, the first
+				character is used.
+				The following values of |v:event| are set:
+				   typed	The key is typed or not.
+				   typedchar	The (actual) typed key.
+				It is not allowed to change the text
+				|textlock| or the current mode.
+				{only with the +eval feature}
 							*MenuPopup*
 MenuPopup			Just before showing the popup menu (under the
 				right mouse button).  Useful for adjusting the

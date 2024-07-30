@@ -6119,10 +6119,10 @@ dict_tv2string(
  */
     static char_u *
 jobchan_tv2string(
-    typval_T	*tv,
-    char_u	**tofree,
-    char_u	*numbuf,
-    int		composite_val)
+    typval_T	*tv UNUSED,
+    char_u	**tofree UNUSED,
+    char_u	*numbuf UNUSED,
+    int		composite_val UNUSED)
 {
     char_u	*r = NULL;
 
@@ -6195,12 +6195,12 @@ object_tv2string(
 	r = (char_u *)"object of [unknown]";
     }
     else if (copyID != 0 && obj->obj_copyID == copyID
-            && obj->obj_class->class_obj_member_count != 0)
+	    && obj->obj_class->class_obj_member_count != 0)
     {
-	int n = 25 + strlen((char*)obj->obj_class->class_name);
+	size_t n = 25 + strlen((char *)obj->obj_class->class_name);
 	r = alloc(n);
 	if (r != NULL)
-	    (void)vim_snprintf((char*)r, n, "object of %s {...}",
+	    (void)vim_snprintf((char *)r, n, "object of %s {...}",
 						obj->obj_class->class_name);
 	*tofree = r;
     }
