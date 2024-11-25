@@ -64,6 +64,8 @@
  * 10.02.2024  fix buffer-overflow when writing color output to buffer, #14003
  * 10.05.2024  fix another buffer-overflow when writing colored output to buffer, #14738
  * 10.09.2024  Support -b and -i together, #15661
+ * 19.10.2024  -e did add an extra space #15899
+ * 11.11.2024  improve end-of-options argument parser #9285
  *
  * (c) 1990-1998 by Juergen Weigert (jnweiger@gmail.com)
  *
@@ -144,7 +146,7 @@ extern void perror __P((char *));
 # endif
 #endif
 
-char version[] = "xxd 2024-09-15 by Juergen Weigert et al.";
+char version[] = "xxd 2024-11-11 by Juergen Weigert et al.";
 #ifdef WIN32
 char osver[] = " (Win32)";
 #else
@@ -842,7 +844,7 @@ main(int argc, char *argv[])
 	  else
 	    exit_with_usage();
         }
-      else if (!strcmp(pp, "--"))	/* end of options */
+      else if (!strcmp(argv[1], "--"))	/* end of options */
 	{
 	  argv++;
 	  argc--;
@@ -1110,9 +1112,6 @@ main(int argc, char *argv[])
           else
             c = addrlen + 3 + (grplen * cols - 1)/octspergrp + p*12;
 
-          if (hextype == HEX_LITTLEENDIAN)
-            c += 1;
-
           COLOR_PROLOGUE
           begin_coloring_char(l,&c,e,ebcdic);
 #if defined(__MVS__) && __CHARSET_LIB == 0
@@ -1126,20 +1125,14 @@ main(int argc, char *argv[])
           l[c++] = (e > 31 && e < 127) ? e : '.';
 #endif
           COLOR_EPILOGUE
-          n++;
-          if (++p == cols)
-            {
-              l[c++] = '\n';
-              l[c++] = '\0';
-              xxdline(fpo, l, autoskip ? nonzero : 1);
-              nonzero = 0;
-              p = 0;
-            }
         }
       else /*no colors*/
         {
           if (ebcdic)
             e = (e < 64) ? '.' : etoa64[e-64];
+
+          if (hextype == HEX_LITTLEENDIAN)
+            c -= 1;
 
           c += addrlen + 3 + p;
           l[c++] =
@@ -1149,16 +1142,16 @@ main(int argc, char *argv[])
               (e > 31 && e < 127)
 #endif
               ? e : '.';
-          n++;
-          if (++p == cols)
-            {
-              l[c++] = '\n';
-              l[c] = '\0';
-              xxdline(fpo, l, autoskip ? nonzero : 1);
-              nonzero = 0;
-              p = 0;
-            }
         }
+        n++;
+        if (++p == cols)
+          {
+            l[c++] = '\n';
+            l[c] = '\0';
+            xxdline(fpo, l, autoskip ? nonzero : 1);
+            nonzero = 0;
+            p = 0;
+          }
     }
   if (p)
     {
@@ -1166,8 +1159,6 @@ main(int argc, char *argv[])
       l[c] = '\0';
       if (color)
         {
-          c++;
-
           x = p;
           if (hextype == HEX_LITTLEENDIAN)
             {

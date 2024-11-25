@@ -328,7 +328,7 @@ static int Vim_PyRun_SimpleString(const char *str)
 #define INVALID_TABPAGE_VALUE ((tabpage_T *)(-1))
 
 typedef void (*rangeinitializer)(void *);
-typedef void (*runner)(const char *, void *
+typedef void (*runner)(const char *, dict_T *, void *
 #ifdef PY_CAN_RECURSE
 	, PyGILState_STATE *
 #endif
@@ -635,13 +635,14 @@ PythonIO_Flush(void)
     if (old_fn != NULL && io_ga.ga_len > 0)
     {
 	((char *)io_ga.ga_data)[io_ga.ga_len] = NUL;
+	// We don't know what emsg_severe should be here, so ... hope?
 	old_fn((char *)io_ga.ga_data);
     }
     io_ga.ga_len = 0;
 }
 
     static void
-writer(writefn fn, char_u *str, PyInt n)
+writer(writefn fn, char_u *str, PyInt n, int severe)
 {
     char_u *ptr;
 
@@ -665,6 +666,7 @@ writer(writefn fn, char_u *str, PyInt n)
 
 	mch_memmove(((char *)io_ga.ga_data) + io_ga.ga_len, str, (size_t)len);
 	((char *)io_ga.ga_data)[io_ga.ga_len + len] = NUL;
+	emsg_severe = severe;
 	fn((char *)io_ga.ga_data);
 	str = ptr + 1;
 	n -= len + 1;
@@ -692,9 +694,7 @@ write_output(OutputObject *self, PyObject *string)
 
     Py_BEGIN_ALLOW_THREADS
     Python_Lock_Vim();
-    if (error)
-	emsg_severe = TRUE;
-    writer((writefn)(error ? emsg : msg), (char_u *)str, len);
+    writer((writefn)(error ? emsg : msg), (char_u *)str, len, error);
     Python_Release_Vim();
     Py_END_ALLOW_THREADS
     PyMem_Free(str);
@@ -6032,7 +6032,7 @@ init_range_eval(void *rettv UNUSED)
 }
 
     static void
-run_cmd(const char *cmd, void *arg UNUSED
+run_cmd(const char *cmd, dict_T* locals UNUSED, void *arg UNUSED
 #ifdef PY_CAN_RECURSE
 	, PyGILState_STATE *pygilstate UNUSED
 #endif
@@ -6057,7 +6057,7 @@ static const char	*code_hdr = "def " DOPY_FUNC "(line, linenr):\n ";
 static int		code_hdr_len = 30;
 
     static void
-run_do(const char *cmd, void *arg UNUSED
+run_do(const char *cmd, dict_T* locals UNUSED, void *arg UNUSED
 #ifdef PY_CAN_RECURSE
 	, PyGILState_STATE *pygilstate
 #endif
@@ -6180,7 +6180,7 @@ out:
 }
 
     static void
-run_eval(const char *cmd, void *arg
+run_eval(const char *cmd, dict_T *locals, void *arg
 #ifdef PY_CAN_RECURSE
 	, PyGILState_STATE *pygilstate UNUSED
 #endif
@@ -6188,8 +6188,9 @@ run_eval(const char *cmd, void *arg
 {
     PyObject	*run_ret;
     typval_T	*rettv = (typval_T*)arg;
+    PyObject	*pylocals = locals ? NEW_DICTIONARY(locals) : globals;
 
-    run_ret = PyRun_String((char *)cmd, Py_eval_input, globals, globals);
+    run_ret = PyRun_String((char *)cmd, Py_eval_input, globals, pylocals);
     if (run_ret == NULL)
     {
 	if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_SystemExit))

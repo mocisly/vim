@@ -111,6 +111,16 @@ runtime/compiler/yamllint.vim		@romainl
 runtime/compiler/zsh.vim		@dkearns
 runtime/doc/ft_hare.txt			@selenebun
 runtime/doc/ps1.txt			@heaths
+runtime/doc/evim-ru.1			@RestorerZ
+runtime/doc/evim-ru.UTF-8.1		@RestorerZ
+runtime/doc/vim-ru.1			@RestorerZ
+runtime/doc/vim-ru.UTF-8.1		@RestorerZ
+runtime/doc/vimdiff-ru.1		@RestorerZ
+runtime/doc/vimdiff-ru.UTF-8.1		@RestorerZ
+runtime/doc/vimtutor-ru.1		@RestorerZ
+runtime/doc/vimtutor-ru.UTF-8.1		@RestorerZ
+runtime/doc/xxd-ru.1			@RestorerZ
+runtime/doc/xxd-ru.UTF-8.1		@RestorerZ
 runtime/ftplugin/abaqus.vim		@costerwi
 runtime/ftplugin/antlr4.vim		@jiangyinzuo
 runtime/ftplugin/apache.vim		@dubgeiser
@@ -121,6 +131,7 @@ runtime/ftplugin/autohotkey.vim		@telemachus
 runtime/ftplugin/awk.vim		@dkearns
 runtime/ftplugin/basic.vim		@dkearns
 runtime/ftplugin/bst.vim		@tpope
+runtime/ftplugin/c3.vim		@ttytm
 runtime/ftplugin/cabal.vim		@ribru17
 runtime/ftplugin/cedar.vim		@ribru17
 runtime/ftplugin/cfg.vim		@chrisbra
@@ -128,6 +139,7 @@ runtime/ftplugin/chatito.vim		@ObserverOfTime
 runtime/ftplugin/chicken.vim		@evhan
 runtime/ftplugin/clojure.vim		@axvr
 runtime/ftplugin/cmakecache.vim		@ribru17
+runtime/ftplugin/cook.vim		@ribru17
 runtime/ftplugin/cs.vim			@nickspoons
 runtime/ftplugin/csh.vim		@dkearns
 runtime/ftplugin/css.vim		@dkearns
@@ -163,6 +175,7 @@ runtime/ftplugin/gitconfig.vim		@tpope
 runtime/ftplugin/gitignore.vim		@ObserverOfTime
 runtime/ftplugin/gitrebase.vim		@tpope
 runtime/ftplugin/gitsendemail.vim	@tpope
+runtime/ftplugin/gleam.vim		@trilowy
 runtime/ftplugin/go.vim			@dbarnett
 runtime/ftplugin/goaccess.vim		@meonkeys
 runtime/ftplugin/gomod.vim		@yu-yk
@@ -200,6 +213,7 @@ runtime/ftplugin/kdl.vim		@imsnif @jiangyinzuo
 runtime/ftplugin/kivy.vim		@ribru17
 runtime/ftplugin/kotlin.vim		@udalov
 runtime/ftplugin/ldapconf.vim		@ribru17
+runtime/ftplugin/leo.vim		@ribru17
 runtime/ftplugin/less.vim		@genoma
 runtime/ftplugin/lex.vim		@ribru17
 runtime/ftplugin/liquid.vim		@tpope
@@ -214,6 +228,7 @@ runtime/ftplugin/meson.vim		@Liambeguin
 runtime/ftplugin/modula2.vim		@dkearns
 runtime/ftplugin/modula3.vim		@dkearns
 runtime/ftplugin/mojo.vim		@ribru17
+runtime/ftplugin/mss.vim		@Freed-Wu
 runtime/ftplugin/nginx.vim		@chr4
 runtime/ftplugin/nim.vim		@ribru17
 runtime/ftplugin/nroff.vim		@a-vrma
@@ -221,6 +236,7 @@ runtime/ftplugin/nsis.vim		@k-takata
 runtime/ftplugin/nu.vim		@mrcjkb
 runtime/ftplugin/octave.vim		@dkearns
 runtime/ftplugin/ondir.vim		@jparise
+runtime/ftplugin/opencl.vim		@Freed-Wu
 runtime/ftplugin/openvpn.vim		@ObserverOfTime
 runtime/ftplugin/pascal.vim		@dkearns
 runtime/ftplugin/pbtxt.vim		@lakshayg
@@ -262,6 +278,7 @@ runtime/ftplugin/squirrel.vim		@ribru17
 runtime/ftplugin/ssa.vim		@ObserverOfTime
 runtime/ftplugin/sshdconfig.vim		@jiangyinzuo
 runtime/ftplugin/svelte.vim		@igorlfs
+runtime/ftplugin/sway.vim		@ribru17
 runtime/ftplugin/swayconfig.vim		@jamespeapen
 runtime/ftplugin/systemverilog.vim	@Kocha
 runtime/ftplugin/swig.vim		@jmarrec
@@ -487,12 +504,14 @@ runtime/syntax/json.vim		        @vito-c
 runtime/syntax/jsonc.vim		@izhakjakov
 runtime/syntax/julia.vim		@carlobaldassi
 runtime/syntax/jq.vim		        @vito-c
+runtime/syntax/karel.vim		@kirillmorozov
 runtime/syntax/kconfig.vim		@chrisbra
 runtime/syntax/kivy.vim		@prophittcorey
 runtime/syntax/kotlin.vim		@udalov
 runtime/syntax/kdl.vim			@imsnif @jiangyinzuo
 runtime/syntax/krl.vim			@KnoP-01
 runtime/syntax/less.vim			@genoma
+runtime/syntax/lf.vim			@andis-sprinkis
 runtime/syntax/liquid.vim		@tpope
 runtime/syntax/lua.vim			@marcuscf
 runtime/syntax/lyrics.vim		@ObserverOfTime
@@ -511,6 +530,7 @@ runtime/syntax/modula2/opt/iso.vim	@trijezdci
 runtime/syntax/modula2/opt/pim.vim	@trijezdci
 runtime/syntax/modula2/opt/r10.vim	@trijezdci
 runtime/syntax/modula3.vim		@dkearns
+runtime/syntax/mss.vim		@Freed-Wu
 runtime/syntax/n1ql.vim			@pr3d4t0r
 runtime/syntax/nginx.vim		@chr4
 runtime/syntax/ninja.vim		@nico
@@ -518,6 +538,7 @@ runtime/syntax/nix.vim			@equill
 runtime/syntax/nroff.vim		@jmarshall
 runtime/syntax/nsis.vim			@k-takata
 runtime/syntax/ondir.vim		@jparise
+runtime/syntax/opencl.vim		@Freed-Wu
 runtime/syntax/openvpn.vim		@ObserverOfTime
 runtime/syntax/pacmanlog.vim		@rpigott
 runtime/syntax/pascal.vim		@dkearns
@@ -611,6 +632,7 @@ runtime/tutor/tutor.ru.cp1251		@RestorerZ
 runtime/tutor/tutor.ru.utf-8		@RestorerZ
 src/iscygpty.*				@k-takata
 src/libvterm/				@leonerd
+src/po/am.po				@gagikh
 src/po/ca.po				@nfdisco
 src/po/de.po				@chrisbra
 src/po/eo.po				@dpelle

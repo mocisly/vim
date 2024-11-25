@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2024 May 31
+" Last Change:	2024 Nov 24
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -283,7 +283,7 @@ au BufNewFile,BufRead *.blade.php		setf blade
 au BufNewFile,BufRead *.bl			setf blank
 
 " Bitbake
-au BufNewFile,BufRead *.bb,*.bbappend,*.bbclass,*/build/conf/*.conf,*/meta{-*,}/conf/*.conf	setf bitbake
+au BufNewFile,BufRead *.bb,*.bbappend,*.bbclass,*/build/conf/*.conf,*/meta{-*,}/conf/*.conf,*/project-spec/configs/*.conf	setf bitbake
 
 " Blkid cache file
 au BufNewFile,BufRead */etc/blkid.tab,*/etc/blkid.tab.old   setf xml
@@ -310,6 +310,9 @@ au BufNewFile,BufRead */.bundle/config			setf yaml
 " C or lpc
 au BufNewFile,BufRead *.c			call dist#ft#FTlpc()
 au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
+
+" C3
+au BufNewFile,BufRead *.c3,*.c3i,*.c3t		setf c3
 
 " Cairo
 au BufNewFile,BufRead *.cairo			setf cairo
@@ -570,11 +573,17 @@ au BufNewFile,BufRead *.dsp				call dist#ft#FTdsp()
 au BufNewFile,BufRead *.xcu,*.xlb,*.xlc,*.xba		setf xml
 au BufNewFile,BufRead psprint.conf,sofficerc		setf dosini
 
+" Libtool files
+au BufNewFile,BufRead *.lo,*.la,*.lai		setf sh
+
 " Lynx config files
 au BufNewFile,BufRead lynx.cfg			setf lynx
 
 " LyRiCs
 au BufNewFile,BufRead *.lrc			setf lyrics
+
+" MLIR
+au BufNewFile,BufRead *.mlir			setf mlir
 
 " Modula-3 configuration language (must be before *.cfg and *makefile)
 au BufNewFile,BufRead *.quake,cm3.cfg		setf m3quake
@@ -637,9 +646,9 @@ au BufNewFile,BufRead *.dfy			setf dafny
 au BufRead,BufNewfile *.dart,*.drt		setf dart
 
 " Debian Control
-au BufNewFile,BufRead */debian/control		setf debcontrol
+au BufNewFile,BufRead */{debian,DEBIAN}/control		setf debcontrol
 au BufNewFile,BufRead control
-	\  if getline(1) =~ '^Source:'
+	\  if getline(1) =~ '^Source:\|^Package:'
 	\|   setf debcontrol
 	\| endif
 
@@ -748,8 +757,12 @@ au BufNewFile,BufRead *.dsl
 " DTD (Document Type Definition for XML)
 au BufNewFile,BufRead *.dtd			setf dtd
 
-" DTS/DSTI/DTSO (device tree files)
-au BufNewFile,BufRead *.dts,*.dtsi,*.dtso,*.its,*.keymap	setf dts
+" Devicetree (.its for U-Boot Flattened Image Trees, .keymap for ZMK keymap, and
+" .overlay for Zephyr overlay)
+au BufNewFile,BufRead *.dts,*.dtsi,*.dtso	setf dts
+au BufNewFile,BufRead *.its			setf dts
+au BufNewFile,BufRead *.keymap			setf dts
+au BufNewFile,BufRead *.overlay			setf dts
 
 " Earthfile
 au BufNewFile,BufRead Earthfile			setf earthfile
@@ -1089,8 +1102,8 @@ au BufRead,BufNewFile *.hurl			setf hurl
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
 
-" Hyprlang
-au BufNewFile,BufRead hypr\(land\|paper\|idle\|lock\).conf	setf hyprlang
+" Hyprland Configuration language
+au BufNewFile,BufRead */hypr/*.conf,hypr\(land\|paper\|idle\|lock\).conf setf hyprlang
 
 " Httest
 au BufNewFile,BufRead *.htt,*.htb		setf httest
@@ -1123,6 +1136,10 @@ au BufNewFile,BufRead indent.pro		call dist#ft#ProtoCheck('indent')
 " IDL (Interactive Data Language), Prolog, Cproto or zsh module C
 au BufNewFile,BufRead *.pro			call dist#ft#ProtoCheck('idlang')
 
+" Idris2
+au BufNewFile,BufRead *.idr			setf idris2
+au BufNewFile,BufRead *.lidr			setf lidris2
+
 " Indent RC
 au BufNewFile,BufRead indentrc			setf indent
 
@@ -1141,6 +1158,9 @@ au BufRead,BufNewFile usw2kagt.log\c,usw2kagt.*.log\c,*.usw2kagt.log\c	setf usw2
 
 " Ipfilter
 au BufNewFile,BufRead ipf.conf,ipf6.conf,ipf.rules	setf ipfilter
+
+" Ipkg for Idris 2 language
+au BufNewFile,BufRead *.ipkg			setf ipkg
 
 " Informix 4GL (source - canonical, include file, I4GL+M4 preproc.)
 au BufNewFile,BufRead *.4gl,*.4gh,*.m4gl	setf fgl
@@ -1245,6 +1265,12 @@ au BufNewFile,BufRead *.jl			setf julia
 " Just
 au BufNewFile,BufRead [jJ]ustfile,.justfile,*.just setf just
 
+" KAREL
+au BufNewFile,BufRead *.kl setf karel
+if has("fname_case")
+   au BufNewFile,BufRead *.KL setf karel
+endif
+
 " KDL
 au BufNewFile,BufRead *.kdl			setf kdl
 
@@ -1312,6 +1338,12 @@ au BufNewFile,BufRead *.lean			setf lean
 " Ledger
 au BufRead,BufNewFile *.ldg,*.ledger,*.journal			setf ledger
 
+" lf configuration (lfrc)
+au BufNewFile,BufRead lfrc			setf lf
+
+" Leo
+au BufNewFile,BufRead *.leo			setf leo
+
 " Less
 au BufNewFile,BufRead *.less			setf less
 
@@ -1328,7 +1360,7 @@ au BufNewFile,BufRead */etc/sensors.conf,*/etc/sensors3.conf	setf sensors
 au BufNewFile,BufRead lftp.conf,.lftprc,*lftp/rc	setf lftp
 
 " Lifelines (or Lex for C++!)
-au BufNewFile,BufRead *.ll			setf lifelines
+au BufNewFile,BufRead *.ll			call dist#ft#FTll()
 
 " Lilo: Linux loader
 au BufNewFile,BufRead lilo.conf			setf lilo
@@ -1336,13 +1368,16 @@ au BufNewFile,BufRead lilo.conf			setf lilo
 " Lilypond
 au BufNewFile,BufRead *.ly,*.ily		setf lilypond
 
-" Lisp (*.el = ELisp, *.cl = Common Lisp)
+" Lisp (*.el = ELisp)
 " *.jl was removed, it's also used for Julia, better skip than guess wrong.
 if has("fname_case")
-  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.cl,*.L,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.L,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
 else
-  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.cl,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
 endif
+
+" *.cl = Common Lisp or OpenCL
+au BufNewFile,BufRead *.cl call dist#ft#FTcl()
 
 " SBCL implementation of Common Lisp
 au BufNewFile,BufRead sbclrc,.sbclrc		setf lisp
@@ -1586,6 +1621,9 @@ au BufNewFile,BufRead Mutt{ng,}rc		setf muttrc
 " N1QL
 au BufRead,BufNewfile *.n1ql,*.nql		setf n1ql
 
+" Neomutt log
+au BufNewFile,BufRead *.neomuttdebug*		setf neomuttlog
+
 " Nano
 au BufNewFile,BufRead */etc/nanorc,*.nanorc	setf nanorc
 
@@ -1697,7 +1735,7 @@ au BufNewFile,BufRead *.scad				setf openscad
 " Oracle config file
 au BufNewFile,BufRead *.ora				setf ora
 
-" Org
+" Org (Emacs' org-mode)
 au BufNewFile,BufRead *.org,*.org_archive		setf org
 
 " Packet filter conf
@@ -1797,7 +1835,7 @@ au BufNewFile,BufRead *.pod			setf pod
 au BufNewFile,BufRead *.php,*.php\d,*.phtml,*.ctp,*.phpt,*.theme	setf php
 
 " PHP config
-au BufNewFile,BufRead php.ini-*			setf dosini
+au BufNewFile,BufRead php.ini-*,php-fpm.conf*,www.conf*		setf dosini
 
 " Pike and Cmod
 au BufNewFile,BufRead *.pike,*.pmod		setf pike
@@ -2414,6 +2452,9 @@ au BufNewFile,BufRead *.sml			setf sml
 " Sratus VOS command macro
 au BufNewFile,BufRead *.cm			setf voscm
 
+" Sway (programming language)
+au BufNewFile,BufRead *.sw			setf sway
+
 " Swift
 au BufNewFile,BufRead *.swift,*.swiftinterface	setf swift
 au BufNewFile,BufRead *.swift.gyb		setf swiftgyb
@@ -2569,6 +2610,9 @@ au BufNewFile,BufReadPost *.tsscl		setf tsscl
 
 " TSV Files
 au BufNewFile,BufRead *.tsv			setf tsv
+
+" Tutor mode
+au BufNewFile,BufReadPost *.tutor		setf tutor
 
 " TWIG files
 au BufNewFile,BufReadPost *.twig		setf twig
@@ -2806,8 +2850,9 @@ au BufNewFile,BufRead xorg.conf,xorg.conf-4	let b:xf86conf_xfree86_version = 4 |
 au BufNewFile,BufRead */etc/xinetd.conf		setf xinetd
 
 " Xilinx Vivado/Vitis project files and block design files
-au BufNewFile,BufRead *.xpr,*.xpfm,*.spfm,*.bxml		setf xml
+au BufNewFile,BufRead *.xpr,*.xpfm,*.spfm,*.bxml,*.mmi		setf xml
 au BufNewFile,BufRead *.bd,*.bda,*.xci				setf json
+au BufNewFile,BufRead *.mss					setf mss
 
 " XS Perl extension interface language
 au BufNewFile,BufRead *.xs			setf xs
@@ -2887,6 +2932,7 @@ au BufNewFile,BufRead *.y			call dist#ft#FTy()
 
 " Yaml
 au BufNewFile,BufRead *.yaml,*.yml,*.eyaml		setf yaml
+au BufNewFile,BufRead */.kube/config	setf yaml
 
 " Raml
 au BufNewFile,BufRead *.raml			setf raml
@@ -2956,7 +3002,7 @@ au BufNewFile,BufRead */etc/proftpd/*.conf*,*/etc/proftpd/conf.*/*	call s:StarSe
 au BufNewFile,BufRead proftpd.conf*					call s:StarSetf('apachestyle')
 
 " More Apache config files
-au BufNewFile,BufRead access.conf*,apache.conf*,apache2.conf*,httpd.conf*,srm.conf*	call s:StarSetf('apache')
+au BufNewFile,BufRead access.conf*,apache.conf*,apache2.conf*,httpd.conf*,httpd-*.conf*,srm.conf*,proxy-html.conf*	call s:StarSetf('apache')
 au BufNewFile,BufRead */etc/apache2/*.conf*,*/etc/apache2/conf.*/*,*/etc/apache2/mods-*/*,*/etc/apache2/sites-*/*,*/etc/httpd/conf.*/*,*/etc/httpd/mods-*/*,*/etc/httpd/sites-*/*,*/etc/httpd/conf.d/*.conf*		call s:StarSetf('apache')
 
 " APT config file

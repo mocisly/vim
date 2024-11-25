@@ -171,7 +171,7 @@ jobs:
           normal)
             ;;
           huge)
-            echo "TEST=scripttests test_libvterm"
+            echo "TEST=scripttests test_libvterm indenttest syntaxtest"
             INTERFACE=${{ matrix.interface || 'yes' }}
             if ${{ matrix.python3 == 'stable-abi' }}; then
               PYTHON3_CONFOPT="--with-python3-stable-abi=3.8"
@@ -194,9 +194,9 @@ jobs:
             echo "TEST=unittests"
           fi
           if ${{ contains(matrix.extra, 'asan') }}; then
-            echo "SANITIZER_CFLAGS=-g -O1 -DABORT_ON_INTERNAL_ERROR -DEXITFREE -fsanitize-recover=all -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer"
-            echo "ASAN_OPTIONS=print_stacktrace=1 log_path=${LOG_DIR}/asan"
-            echo "UBSAN_OPTIONS=print_stacktrace=1 log_path=${LOG_DIR}/ubsan"
+            echo "SANITIZER_CFLAGS=-g -O0 -DABORT_ON_INTERNAL_ERROR -DEXITFREE -fsanitize-recover=all -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer"
+            echo "ASAN_OPTIONS=print_stacktrace=1:log_path=${LOG_DIR}/asan"
+            echo "UBSAN_OPTIONS=print_stacktrace=1:log_path=${LOG_DIR}/ubsan"
             echo "LSAN_OPTIONS=suppressions=${GITHUB_WORKSPACE}/src/testdir/lsan-suppress.txt"
           fi
           if ${{ contains(matrix.extra, 'vimtags') }}; then
@@ -268,11 +268,11 @@ jobs:
       - name: Test
         timeout-minutes: 25
         run: |
-          do_test() { sg audio "sg $(id -gn) '$*'"; }
+          do_test() { echo "$*"; sg audio "sg $(id -gn) '$*'"; }
           do_test make ${SHADOWOPT} ${TEST}
 
       - if: ${{ !cancelled() }}
-        uses: ./.github/actions/screendump
+        uses: ./.github/actions/test_artifacts
 
       - name: Vim tags
         if: contains(matrix.extra, 'vimtags')
@@ -295,15 +295,16 @@ jobs:
       - name: Codecov
         timeout-minutes: 20
         if: matrix.coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          flags: linux,${{ matrix.features }}-${{ matrix.compiler }}-${{ matrix.extra }}
+          flags: linux,${{ matrix.features }}-${{ matrix.compiler }}-${{ join(matrix.extra, '-') }}
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: ASan logs
         if: contains(matrix.extra, 'asan') && !cancelled()
         run: |
           for f in $(grep -lR '#[[:digit:]]* *0x[[:xdigit:]]*' "${LOG_DIR}"); do
+            echo "$f"
             asan_symbolize -l "$f"
             false # in order to fail a job
           done
@@ -388,12 +389,12 @@ jobs:
           brew install diffutils
 
       - name: Test
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           make ${TEST}
 
       - if: ${{ !cancelled() }}
-        uses: ./.github/actions/screendump
+        uses: ./.github/actions/test_artifacts
 
   windows:
     runs-on: windows-2022
@@ -703,7 +704,7 @@ jobs:
           )
 
       - if: ${{ !cancelled() }}
-        uses: ./.github/actions/screendump
+        uses: ./.github/actions/test_artifacts
 
       - name: Generate gcov files
         if: matrix.coverage
@@ -715,7 +716,7 @@ jobs:
       - name: Codecov
         timeout-minutes: 20
         if: matrix.coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           directory: src
           flags: windows,${{ matrix.toolchain }}-${{ matrix.arch }}-${{ matrix.features }}
