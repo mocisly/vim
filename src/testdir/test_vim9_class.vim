@@ -2386,6 +2386,22 @@ def Test_interface_basics()
   END
   v9.CheckSourceFailure(lines, 'E1345: Not a valid command in an interface: return 5', 6)
 
+  # Test for "interface" cannot be abbreviated
+  lines =<< trim END
+    vim9script
+    inte Something
+    endinterface
+  END
+  v9.CheckSourceFailure(lines, 'E1065: Command cannot be shortened: inte Something', 2)
+
+  # Test for "endinterface" cannot be abbreviated
+  lines =<< trim END
+    vim9script
+    interface Something
+    endin
+  END
+  v9.CheckSourceFailure(lines, 'E1065: Command cannot be shortened: endin', 3)
+
   # Additional commands after "interface name"
   lines =<< trim END
     vim9script
@@ -3524,6 +3540,14 @@ def Test_abstract_class()
     endclass
   END
   v9.CheckSourceFailure(lines, 'E1316: Class can only be defined in Vim9 script', 1)
+
+  # Test for "abstract" cannot be abbreviated
+  lines =<< trim END
+    vim9script
+    abs class A
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1065: Command cannot be shortened: abs class A', 2)
 
   # Additional commands after "abstract class"
   lines =<< trim END
@@ -11306,7 +11330,7 @@ def Test_any_obj_var_type()
   END
   v9.CheckScriptSuccess(lines)
 
-  # Nested data.  Object containg a Dict containing another Object.
+  # Nested data.  Object containing a Dict containing another Object.
   lines =<< trim END
     vim9script
     class Context
@@ -11594,6 +11618,225 @@ def Test_any_obj_var_type()
     Fn(a)
   END
   v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected list<any> but got string', 1)
+enddef
+
+" Test for using an object method with mapnew()
+def Test_mapnew_with_instance_method()
+  var lines =<< trim END
+    vim9script
+
+    class Foo
+      var str: string
+      var nums: list<number> = [1, 2, 3]
+
+      def InstanceMethod(n: number): string
+        return this.str .. n
+      enddef
+
+      def MapperMethod(idx: number, elem: number): string
+        return elem->this.InstanceMethod()
+      enddef
+
+      def MapTest()
+        this.str = "foo"
+        var l = ['foo1', 'foo2', 'foo3']
+        assert_equal(l, this.nums->mapnew(this.MapperMethod))
+      enddef
+    endclass
+
+    Foo.new().MapTest()
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Error in the mapnew() function
+  lines =<< trim END
+    vim9script
+
+    class Foo
+      var str: string
+      var nums: list<number> = [1, 2, 3]
+
+      def InstanceMethod(n: number): string
+        throw "InstanceMethod failed"
+      enddef
+
+      def MapperMethod(idx: number, elem: number): string
+        return elem->this.InstanceMethod()
+      enddef
+
+      def MapTest()
+        this.str = "foo"
+        var caught_exception: bool = false
+        try
+          this.nums->mapnew(this.MapperMethod)
+        catch /InstanceMethod failed/
+          caught_exception = true
+        endtry
+        assert_true(caught_exception)
+      enddef
+    endclass
+
+    Foo.new().MapTest()
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for using an object method in a method call.
+def Test_use_object_method_in_a_method_call()
+  var lines =<< trim END
+    vim9script
+
+    class Foo
+      def Cost(nums: list<number>): number
+        return nums[0] * nums[1]
+      enddef
+
+      def ShowCost(): string
+        var g = [4, 5]
+        return $"Cost is: {g->this.Cost()}"
+      enddef
+    endclass
+
+    var d = Foo.new()
+    assert_equal('Cost is: 20', d.ShowCost())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Test for using a non-existing object method in string interpolation
+  lines =<< trim END
+    vim9script
+
+    class Foo
+      def Cost(nums: list<number>): number
+        return nums[0] * nums[1]
+      enddef
+
+      def ShowCost(): string
+        var g = [4, 5]
+        echo $"Cost is: {g->this.NewCost()}"
+      enddef
+    endclass
+
+    var d = Foo.new()
+    d.ShowCost()
+  END
+  v9.CheckSourceFailure(lines, 'E1326: Variable "NewCost" not found in object "Foo"')
+enddef
+
+" Test for referencing an object variable which is not yet initialized
+def Test_uninitialized_object_var()
+  var lines =<< trim END
+    vim9script
+    class Foo
+      const two: number = Foo.Two(this)
+      const one: number = 1
+
+      static def Two(that: Foo): number
+        return that.one + 2
+      enddef
+    endclass
+
+    echo Foo.Two(Foo.new())
+  END
+  v9.CheckSourceFailure(lines, "E1430: Uninitialized object variable 'one' referenced")
+
+  lines =<< trim END
+    vim9script
+    class Foo
+      const one: number = Foo.One(this)
+
+      static def One(that: Foo): number
+        return 1
+      enddef
+    endclass
+
+    assert_equal(1, Foo.One(Foo.new()))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    class Foo
+      const one: number = 1
+      const two: number = Foo.Two(this)
+
+      static def Two(that: Foo): number
+        return that.one + 1
+      enddef
+    endclass
+
+    assert_equal(2, Foo.Two(Foo.new()))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    class Foo
+      const Id: func(any): any = ((_) => (v) => v)(this)
+
+      static def Id(that: Foo): func(any): any
+        return that.Id
+      enddef
+    endclass
+
+    assert_equal(5, Foo.Id(Foo.new())(5))
+    assert_equal(7, Foo.new().Id(7))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    class Foo
+      const Id: func(any): any = ((that) => (_) => that)(this)
+
+      static def Id(that: Foo): func(any): any
+          return that.Id
+      enddef
+    endclass
+
+    const Id0: func(any): any = Foo.Id(Foo.new())
+    const Id1: func(any): any = Foo.new().Id
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    class Foo
+      const Id: any = Foo.Id(this)
+
+      static def Id(that: Foo): any
+          return that.Id
+      enddef
+    endclass
+
+    const Id2: any = Foo.Id(Foo.new())
+    const Id3: any = Foo.new().Id
+  END
+  v9.CheckSourceFailure(lines, "E1430: Uninitialized object variable 'Id' referenced")
+
+  lines =<< trim END
+    vim9script
+
+    class Foo
+      var x: string = ''
+      var Y: func(): string = () => this.x
+    endclass
+
+    var foo = Foo.new('ok')
+    assert_equal('ok', foo.Y())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+
+    class Foo
+      var x: string = this.x
+    endclass
+
+    var foo = Foo.new('ok')
+  END
+  v9.CheckSourceFailure(lines, "E1430: Uninitialized object variable 'x' referenced")
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

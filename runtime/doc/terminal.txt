@@ -1,4 +1,4 @@
-*terminal.txt*	For Vim version 9.1.  Last change: 2024 Nov 23
+*terminal.txt*	For Vim version 9.1.  Last change: 2024 Dec 30
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -196,6 +196,9 @@ Command syntax ~
 			If [command] is not given the 'shell' option is used.
 			if [command] is NONE no job is started, the pty of the
 			terminal can be used by a command like gdb.
+
+			If [command] outputs NUL bytes, those will be
+			converted to new lines |NL-used-for-Nul|.
 
 							*terminal-nospecial*
 			Vim itself only recognizes |cmdline-special|
@@ -1759,8 +1762,8 @@ mechanisms like `echo` statements (or similar) to help you in your job.
 For this reason, you can set: >
     let g:termdebug_config['debug'] = true
 <
-This sets the `DEBUG` variable to `true` in the source code that you can use
-within the source code. An example of its usage follows: >
+This sets the `DEBUG` variable to `true`, which can be referenced in the
+source code.  An example of its usage follows: >
     if exists('g:termdebug_loaded')
       if DEBUG
 	Echoerr('Termdebug already loaded.')
