@@ -479,7 +479,10 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 		    || bufIsChanged(wp->w_buffer)
 		    || wp->w_buffer->b_p_ro)
 		&& plen < MAXPATHL - 1)
-	    *(p + plen++) = ' ';
+	{
+	    *(p + plen++) = ' ';	// replace NUL with space
+	    *(p + plen) = NUL;		// NUL terminate the string
+	}
 	if (bt_help(wp->w_buffer))
 	    plen += vim_snprintf((char *)p + plen, MAXPATHL - plen, "%s", _("[Help]"));
 #ifdef FEAT_QUICKFIX
@@ -3362,9 +3365,21 @@ redrawWinline(
     win_T	*wp,
     linenr_T	lnum)
 {
-    if (wp->w_redraw_top == 0 || wp->w_redraw_top > lnum)
-	wp->w_redraw_top = lnum;
-    if (wp->w_redraw_bot == 0 || wp->w_redraw_bot < lnum)
-	wp->w_redraw_bot = lnum;
-    redraw_win_later(wp, UPD_VALID);
+    redraw_win_range_later(wp, lnum, lnum);
+}
+
+    void
+redraw_win_range_later(
+    win_T	*wp,
+    linenr_T	first,
+    linenr_T	last)
+{
+    if (last >= wp->w_topline && first < wp->w_botline)
+    {
+	if (wp->w_redraw_top == 0 || wp->w_redraw_top > first)
+	    wp->w_redraw_top = first;
+	if (wp->w_redraw_bot == 0 || wp->w_redraw_bot < last)
+	    wp->w_redraw_bot = last;
+	redraw_win_later(wp, UPD_VALID);
+    }
 }

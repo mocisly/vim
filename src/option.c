@@ -4296,6 +4296,7 @@ did_set_termguicolors(optset_T *args UNUSED)
 #  endif
 	    !has_vtp_working())
     {
+	p_tgc_set = TRUE;
 	p_tgc = 0;
 	return e_24_bit_colors_are_not_supported_on_this_environment;
     }
@@ -4320,6 +4321,7 @@ did_set_termguicolors(optset_T *args UNUSED)
     term_update_palette_all();
     term_update_wincolor_all();
 # endif
+    p_tgc_set = TRUE;
 
     return NULL;
 }
@@ -6626,6 +6628,7 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_DIFF
 	case PV_DIFF:	return (char_u *)&(curwin->w_p_diff);
 #endif
+	case PV_EIW:	return (char_u *)&(curwin->w_p_eiw);
 #ifdef FEAT_FOLDING
 	case PV_FDC:	return (char_u *)&(curwin->w_p_fdc);
 	case PV_FEN:	return (char_u *)&(curwin->w_p_fen);
@@ -6939,6 +6942,7 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_diff = from->wo_diff;
     to->wo_diff_saved = from->wo_diff_saved;
 #endif
+    to->wo_eiw = copy_option_val(from->wo_eiw);
 #ifdef FEAT_CONCEAL
     to->wo_cocu = copy_option_val(from->wo_cocu);
     to->wo_cole = from->wo_cole;
@@ -7004,6 +7008,7 @@ check_winopt(winopt_T *wop UNUSED)
 # endif
     check_string_option(&wop->wo_fmr);
 #endif
+    check_string_option(&wop->wo_eiw);
 #ifdef FEAT_SIGNS
     check_string_option(&wop->wo_scl);
 #endif
@@ -7052,6 +7057,7 @@ clear_winopt(winopt_T *wop UNUSED)
 # endif
     clear_string_option(&wop->wo_fmr);
 #endif
+    clear_string_option(&wop->wo_eiw);
 #ifdef FEAT_SIGNS
     clear_string_option(&wop->wo_scl);
 #endif
@@ -8412,57 +8418,10 @@ vimrc_found(char_u *fname, char_u *envname)
 	    if (p != NULL)
 	    {
 		vim_setenv(envname, p);
-		if (vim_getenv((char_u *)"MYVIMDIR", &dofree) == NULL)
-		{
-		    size_t  usedlen = 0;
-		    size_t  len = 0;
-		    char_u  *fbuf = NULL;
-
-		    if (STRNCMP(gettail(fname), ".vimrc", 6) == 0)
-		    {
-			len = STRLEN(p) - 2;
-			p[len] = '/';
-		    }
-		    else if (STRNCMP(gettail(fname), ".gvimrc", 7) == 0)
-		    {
-			len = STRLEN(p);
-			char_u  *buf = alloc(len);
-			if (buf != NULL)
-			{
-			    mch_memmove(buf, fname, len - 7);
-			    mch_memmove(buf + len - 7, (char_u *)".vim/", 5);
-			    len -= 2;  // decrement len, so that we can set len+1 = NUL below
-			    vim_free(p);
-			    p = buf;
-			}
-		    }
-#ifdef MSWIN
-		    else if (STRNCMP(gettail(fname), "_vimrc", 6) == 0)
-		    {
-			len = STRLEN(p) + 4; // remove _vimrc, add vimfiles/
-			char_u  *buf = alloc(len);
-			if (buf != NULL)
-			{
-			    mch_memmove(buf, fname, len - 10);
-			    mch_memmove(buf + len - 10, (char_u *)"vimfiles\\", 9);
-			    len -= 2;  // decrement len, so that we can set len+1 = NUL below
-			    vim_free(p);
-			    p = buf;
-			}
-		    }
-#endif
-		    else
-			(void)modify_fname((char_u *)":h", FALSE, &usedlen, &p, &fbuf, &len);
-
-		    if (p != NULL)
-		    {
-			// keep the directory separator
-			p[len + 1] = NUL;
-			vim_setenv((char_u *)"MYVIMDIR", p);
-		    }
-		}
 		vim_free(p);
 	    }
+	    // Set $MYVIMDIR
+	    export_myvimdir();
 	}
 	else if (dofree)
 	    vim_free(p);
@@ -8786,15 +8745,33 @@ option_set_callback_func(char_u *optval UNUSED, callback_T *optcb UNUSED)
 	vim_free(cb.cb_name);
     free_tv(tv);
 
-    if (in_vim9script() && funcname && (vim_strchr(optval, '.') != NULL))
+    char_u  *dot = NULL;
+    if (in_vim9script() && funcname
+				&& ((dot = vim_strchr(optval, '.')) != NULL))
     {
-	// When a Vim9 imported function name is used, it is expanded by the
-	// call to get_callback() above to <SNR>_funcname.   Revert the name to
-	// back to "import.funcname".
 	if (optcb->cb_free_name)
 	    vim_free(optcb->cb_name);
-	optcb->cb_name = vim_strsave(optval);
-	optcb->cb_free_name = TRUE;
+
+	imported_T *import = find_imported(optval, dot - optval, FALSE);
+	if (import != NULL && SCRIPT_ID_VALID(import->imp_sid)
+				&& !(import->imp_flags & IMP_FLAGS_AUTOLOAD))
+	{
+	    char_u	fnamebuf[MAX_FUNC_NAME_LEN];
+
+	    // Imported non-autoloaded function.  Replace the import script
+	    // name (import.funcname) with the script ID (<SNR>123_funcname)
+	    vim_snprintf((char *)fnamebuf, sizeof(fnamebuf), "<SNR>%d_%s",
+						import->imp_sid, dot + 1);
+	    optcb->cb_name = vim_strsave(fnamebuf);
+	    optcb->cb_free_name = TRUE;
+	}
+	else
+	{
+	    // Imported autoloaded function.  Store the function name as
+	    // "import.funcname".
+	    optcb->cb_name = vim_strsave(optval);
+	    optcb->cb_free_name = TRUE;
+	}
     }
     // when using Vim9 style "import.funcname" it needs to be expanded to
     // "import#funcname".

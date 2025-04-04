@@ -17,12 +17,14 @@ func Test_compiler()
   e Xfoo.pl
   " Play nice with other tests.
   defer setqflist([])
+
   compiler perl
   call assert_equal('perl', b:current_compiler)
   call assert_fails('let g:current_compiler', 'E121:')
-
   let verbose_efm = execute('verbose set efm')
   call assert_match('Last set from .*[/\\]compiler[/\\]perl.vim ', verbose_efm)
+  " Not using the global value
+  call assert_notequal('', &l:efm)
 
   call setline(1, ['#!/usr/bin/perl -w', 'use strict;', 'my $foo=1'])
   w!
@@ -36,6 +38,29 @@ func Test_compiler()
   call assert_match('\n \d\+ Xfoo.pl:3: Global symbol "$foo" '
   \ .               'requires explicit package name', a)
 
+  compiler make
+  call assert_fails('let b:current_compiler', 'E121:')
+  call assert_fails('let g:current_compiler', 'E121:')
+  let verbose_efm = execute('verbose set efm')
+  call assert_match('Last set from .*[/\\]compiler[/\\]make.vim ', verbose_efm)
+
+  compiler! perl
+  call assert_equal('perl', b:current_compiler)
+  call assert_equal('perl', g:current_compiler)
+  let verbose_efm = execute('verbose set efm')
+  call assert_match('Last set from .*[/\\]compiler[/\\]perl.vim ', verbose_efm)
+  call assert_equal(verbose_efm, execute('verbose setglobal efm'))
+  " Using the global value
+  call assert_equal('', &l:efm)
+
+  compiler! make
+  call assert_fails('let b:current_compiler', 'E121:')
+  call assert_fails('let g:current_compiler', 'E121:')
+  let verbose_efm = execute('verbose set efm')
+  call assert_match('Last set from .*[/\\]compiler[/\\]make.vim ', verbose_efm)
+  call assert_equal(verbose_efm, execute('verbose setglobal efm'))
+  " Using the global value
+  call assert_equal('', &l:efm)
 
   let &shellslash = save_shellslash
   call delete('Xfoo.pl')
@@ -417,8 +442,10 @@ func Test_compiler_spotbugs_properties()
 
   " TEST INTEGRATION WITH A SUPPORTED COMPILER PLUGIN.
   if filereadable($VIMRUNTIME .. '/compiler/maven.vim')
+    let save_PATH = $PATH
     if !executable('mvn')
       if has('win32')
+        let $PATH = 'Xspotbugs;' .. $PATH
         " This is what ":help executable()" suggests.
         call writefile([], 'Xspotbugs/mvn.cmd')
       else
@@ -702,6 +729,7 @@ func Test_compiler_spotbugs_properties()
 
     bwipeout
     setlocal makeprg=
+    let $PATH = save_PATH
   endif
 
   filetype plugin off

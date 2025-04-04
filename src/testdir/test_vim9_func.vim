@@ -3718,6 +3718,7 @@ def Test_invalid_function_name()
 enddef
 
 def Test_partial_call()
+  CheckFeature quickfix
   var lines =<< trim END
       var Xsetlist: func
       Xsetlist = function('setloclist', [0])
@@ -4574,6 +4575,7 @@ def Test_multiple_funcref()
 enddef
 
 def Test_cexpr_errmsg_line_number()
+  CheckFeature quickfix
   var lines =<< trim END
       vim9script
       def Func()
@@ -4710,6 +4712,50 @@ def Test_comment_after_inner_block()
         echo 'ok'   # comment3
       })            # comment4
     })              # comment5
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for calling an imported funcref which is modified in the current script
+def Test_call_modified_import_func()
+  var lines =<< trim END
+    vim9script
+
+    export var done = 0
+
+    def Noop()
+    enddef
+
+    export var Setup = Noop
+
+    export def Run()
+      done = 0
+      Setup()
+      call(Setup, [])
+      call("Setup", [])
+      call(() => Setup(), [])
+      done += 1
+    enddef
+  END
+  writefile(lines, 'XcallModifiedImportFunc.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+
+    import './XcallModifiedImportFunc.vim' as imp
+
+    var setup = 0
+
+    imp.Run()
+
+    imp.Setup = () => {
+      ++setup
+    }
+
+    imp.Run()
+
+    assert_equal(4, setup)
+    assert_equal(1, imp.done)
   END
   v9.CheckScriptSuccess(lines)
 enddef

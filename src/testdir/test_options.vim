@@ -311,6 +311,13 @@ func Test_set_completion()
   " Expand key codes.
   call feedkeys(":set <H\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set <Help> <Home>', @:)
+  " <BackSpace> (alt name) and <BS> should both show up in auto-complete
+  call feedkeys(":set <B\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"set <BackSpace> <Bar> <BS> <Bslash>', @:)
+  " <ScrollWheelDown> has alt name <MouseUp> but it should not show up here
+  " nor show up as duplicates
+  call feedkeys(":set <ScrollWheel\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"set <ScrollWheelDown> <ScrollWheelLeft> <ScrollWheelRight> <ScrollWheelUp>', @:)
 
   " Expand terminal options.
   call feedkeys(":set t_A\<C-A>\<C-B>\"\<CR>", 'tx')
@@ -501,6 +508,7 @@ func Test_set_completion_string_values()
   endif
   call assert_equal('.', getcompletion('set complete=', 'cmdline')[1])
   call assert_equal('menu', getcompletion('set completeopt=', 'cmdline')[1])
+  call assert_equal('keyword', getcompletion('set completefuzzycollect=', 'cmdline')[0])
   if exists('+completeslash')
     call assert_equal('backslash', getcompletion('set completeslash=', 'cmdline')[1])
   endif
@@ -577,6 +585,7 @@ func Test_set_completion_string_values()
 
   " Other string options that queries the system rather than fixed enum names
   call assert_equal(['all', 'BufAdd'], getcompletion('set eventignore=', 'cmdline')[0:1])
+  call assert_equal(['WinLeave', 'WinResized', 'WinScrolled'], getcompletion('set eiw=', 'cmdline')[-3:-1])
   call assert_equal('latin1', getcompletion('set fileencodings=', 'cmdline')[1])
   call assert_equal('top', getcompletion('set printoptions=', 'cmdline')[0])
   call assert_equal('SpecialKey', getcompletion('set wincolor=', 'cmdline')[0])
@@ -610,10 +619,11 @@ func Test_set_completion_string_values()
   call assert_equal([], getcompletion('set completepopup=bogusname:', 'cmdline'))
   set previewpopup& completepopup&
 
-  " diffopt: special handling of algorithm:<alg_list>
+  " diffopt: special handling of algorithm:<alg_list> and inline:<inline_type>
   call assert_equal('filler', getcompletion('set diffopt+=', 'cmdline')[0])
   call assert_equal([], getcompletion('set diffopt+=iblank,foldcolumn:', 'cmdline'))
   call assert_equal('patience', getcompletion('set diffopt+=iblank,algorithm:pat*', 'cmdline')[0])
+  call assert_equal('char', getcompletion('set diffopt+=iwhite,inline:ch*', 'cmdline')[0])
 
   " highlight: special parsing, including auto-completing highlight groups
   " after ':'
@@ -701,6 +711,10 @@ func Test_set_completion_string_values()
   " Test empty option
   set diffopt=
   call assert_equal([], getcompletion('set diffopt-=', 'cmdline'))
+  " Test all possible values
+  call assert_equal(['filler', 'context:', 'iblank', 'icase', 'iwhite', 'iwhiteall', 'iwhiteeol', 'horizontal',
+        \ 'vertical', 'closeoff', 'hiddenoff', 'foldcolumn:', 'followwrap', 'internal', 'indent-heuristic', 'algorithm:', 'inline:', 'linematch:'],
+        \ getcompletion('set diffopt=', 'cmdline'))
   set diffopt&
 
   " Test escaping output
@@ -2495,6 +2509,7 @@ func Test_string_option_revert_on_failure()
         \ ['eadirection', 'hor', 'a123'],
         \ ['encoding', 'utf-8', 'a123'],
         \ ['eventignore', 'TextYankPost', 'a123'],
+        \ ['eventignorewin', 'WinScrolled', 'a123'],
         \ ['fileencoding', 'utf-8', 'a123,'],
         \ ['fileformat', 'mac', 'a123'],
         \ ['fileformats', 'mac', 'a123'],

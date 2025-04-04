@@ -204,7 +204,13 @@ add_member(
 	m->ocm_flags |= OCMFLAG_HAS_TYPE;
     m->ocm_type = type;
     if (init_expr != NULL)
+    {
 	m->ocm_init = init_expr;
+	// Save the script context, we need it when evaluating or compiling the
+	// initializer expression.
+	m->ocm_init_sctx = current_sctx;
+	m->ocm_init_sctx.sc_lnum += SOURCING_LNUM;
+    }
     ++gap->ga_len;
     return OK;
 }
@@ -561,20 +567,34 @@ validate_abstract_class_methods(
 	    if (!IS_ABSTRACT_METHOD(uf))
 		continue;
 
-	    int method_found = FALSE;
+	    int	concrete_method_found = FALSE;
+	    int	j = 0;
 
-	    for (int j = 0; j < method_count; j++)
+	    // Check if the abstract method is already implemented in one of
+	    // the parent classes.
+	    for (j = 0; !concrete_method_found && j < i; j++)
+	    {
+		ufunc_T *uf2 = extends_methods[j];
+		if (!IS_ABSTRACT_METHOD(uf2) &&
+			STRCMP(uf->uf_name, uf2->uf_name) == 0)
+		    concrete_method_found = TRUE;
+	    }
+
+	    if (concrete_method_found)
+		continue;
+
+	    for (j = 0; j < method_count; j++)
 	    {
 		if (STRCMP(uf->uf_name, cl_fp[j]->uf_name) == 0)
 		{
-		    method_found = TRUE;
+		    concrete_method_found = TRUE;
 		    break;
 		}
 	    }
 
-	    if (!method_found)
+	    if (!concrete_method_found)
 	    {
-		semsg(_(e_abstract_method_str_not_found), uf->uf_name);
+		semsg(_(e_abstract_method_str_not_implemented), uf->uf_name);
 		return FALSE;
 	    }
 	}
@@ -782,7 +802,7 @@ validate_interface_methods(
     static int
 validate_implements_classes(
     garray_T	*impl_gap,
-    class_T	**intf_classes,
+    garray_T	*intf_classes_gap,
     garray_T	*objmethods_gap,
     garray_T	*objmembers_gap,
     class_T	*extends_cl)
@@ -812,7 +832,15 @@ validate_implements_classes(
 	}
 
 	class_T *ifcl = tv.vval.v_class;
-	intf_classes[i] = ifcl;
+	if (ga_grow(intf_classes_gap, 1) == FAIL)
+	{
+	    success = FALSE;
+	    clear_tv(&tv);
+	    break;
+	}
+	((class_T **)intf_classes_gap->ga_data)[intf_classes_gap->ga_len]
+								= ifcl;
+	intf_classes_gap->ga_len++;
 	++ifcl->class_refcount;
 
 	// check the variables of the interface match the members of the class
@@ -828,6 +856,80 @@ validate_implements_classes(
     }
 
     return success;
+}
+
+/*
+ * Returns TRUE if the interface class "ifcl" is already present in the
+ * "intf_classes_gap" grow array.
+ */
+    static int
+is_interface_class_present(garray_T *intf_classes_gap, class_T *ifcl)
+{
+    for (int j = 0; j < intf_classes_gap->ga_len; j++)
+    {
+	if (((class_T **)intf_classes_gap)[j] == ifcl)
+	    return TRUE;
+    }
+
+    return FALSE;
+}
+
+/*
+ * Add interface "ifcl" from a super class to "intf_classes_gap" and the class
+ * name to "impl_gap".
+ */
+    static int
+add_interface_from_super_class(
+    class_T	*ifcl,
+    garray_T	*impl_gap,
+    garray_T	*intf_classes_gap)
+{
+    char_u	*intf_name;
+
+    // Add the interface name to "impl_gap"
+    intf_name = vim_strsave(ifcl->class_name);
+    if (intf_name == NULL)
+	return FALSE;
+
+    if (ga_grow(impl_gap, 1) == FAIL)
+	return FALSE;
+
+    char_u **intf_names = (char_u **)impl_gap->ga_data;
+    intf_names[impl_gap->ga_len] = intf_name;
+    impl_gap->ga_len++;
+
+    // Add the interface class to "intf_classes_gap"
+    if (ga_grow(intf_classes_gap, 1) == FAIL)
+	return FALSE;
+
+    class_T **intf_classes = (class_T **)intf_classes_gap->ga_data;
+    intf_classes[intf_classes_gap->ga_len] = ifcl;
+    intf_classes_gap->ga_len++;
+    ++ifcl->class_refcount;
+
+    return TRUE;
+}
+
+/*
+ * Add "super" class interfaces to "intf_classes_gap" (if not present already)
+ * Add the interface class names to "impl_gap".
+ */
+    static int
+add_super_class_interfaces(
+    class_T	*super,
+    garray_T	*impl_gap,
+    garray_T	*intf_classes_gap)
+{
+    // Iterate through all the interfaces implemented by "super"
+    for (int i = 0; i < super->class_interface_count; i++)
+    {
+	class_T	*ifcl = super->class_interfaces_cl[i];
+
+	if (!is_interface_class_present(intf_classes_gap, ifcl))
+	    add_interface_from_super_class(ifcl, impl_gap, intf_classes_gap);
+    }
+
+    return TRUE;
 }
 
 /*
@@ -1259,7 +1361,11 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 	typval_T	*tv = &cl->class_members_tv[i];
 	if (m->ocm_init != NULL)
 	{
+	    sctx_T	save_current_sctx = current_sctx;
+
+	    current_sctx = m->ocm_init_sctx;
 	    typval_T *etv = eval_expr(m->ocm_init, eap);
+	    current_sctx = save_current_sctx;
 	    if (etv == NULL)
 		return FAIL;
 
@@ -1957,8 +2063,7 @@ early_ret:
     tv.v_type = VAR_CLASS;
     tv.vval.v_class = cl;
     SOURCING_LNUM = start_lnum;
-    int rc = set_var_const(cl->class_name, current_sctx.sc_sid,
-						NULL, &tv, FALSE, 0, 0);
+    int rc = set_var_const(cl->class_name, 0, NULL, &tv, FALSE, 0, 0);
     if (rc == FAIL)
 	goto cleanup;
 
@@ -2279,7 +2384,8 @@ early_ret:
 	{
 	    exarg_T	ea;
 	    garray_T	lines_to_free;
-	    int		is_new = STRNCMP(p, "new", 3) == 0;
+	    int		is_new = STRNCMP(p, "new", 3) == 0
+						|| STRNCMP(p, "_new", 4) == 0;
 
 	    if (has_public)
 	    {
@@ -2392,7 +2498,7 @@ early_ret:
 
     if (success && is_enum && num_enum_values == 0)
 	// Empty enum statement. Add an empty "values" class variable
-	enum_add_values_member(cl, &classmembers, 0, &type_list);
+	success = enum_add_values_member(cl, &classmembers, 0, &type_list);
 
     /*
      * Check a few things
@@ -2427,14 +2533,23 @@ early_ret:
 	success = validate_abstract_class_methods(&classfunctions,
 						&objmethods, extends_cl);
 
+    // Process the "implements" entries
     // Check all "implements" entries are valid.
-    if (success && ga_impl.ga_len > 0)
-    {
-	intf_classes = ALLOC_CLEAR_MULT(class_T *, ga_impl.ga_len);
+    garray_T  intf_classes_ga;
 
-	success = validate_implements_classes(&ga_impl, intf_classes,
+    ga_init2(&intf_classes_ga, sizeof(class_T *), 5);
+
+    if (success && ga_impl.ga_len > 0)
+	success = validate_implements_classes(&ga_impl, &intf_classes_ga,
 					&objmethods, &objmembers, extends_cl);
-    }
+
+    // inherit the super class interfaces
+    if (success && extends_cl != NULL)
+	success = add_super_class_interfaces(extends_cl, &ga_impl,
+							&intf_classes_ga);
+
+    intf_classes = intf_classes_ga.ga_data;
+    intf_classes_ga.ga_len = 0;
 
     // Check no function argument name is used as a class member.
     if (success)
@@ -2496,7 +2611,8 @@ early_ret:
 	for (int i = 0; i < classfunctions.ga_len; ++i)
 	{
 	    class_func = ((ufunc_T **)classfunctions.ga_data)[i];
-	    if (STRCMP(class_func->uf_name, "new") == 0)
+	    if (STRCMP(class_func->uf_name, "new") == 0
+				|| STRCMP(class_func->uf_name, "_new") == 0)
 	    {
 		have_new = TRUE;
 		break;
@@ -3534,7 +3650,7 @@ class_free_nonref(int copyID)
 set_ref_in_classes(int copyID)
 {
     for (class_T *cl = first_class; cl != NULL; cl = cl->class_next_used)
-	set_ref_in_item_class(cl, copyID, NULL, NULL);
+	set_ref_in_item_class(cl, copyID, NULL, NULL, NULL);
 
     return FALSE;
 }
@@ -3963,6 +4079,7 @@ object2string(
 	vim_free(ga.ga_data);
 	return NULL;
     }
+    ga_append(&ga, NUL);
     return (char_u *)ga.ga_data;
 }
 
@@ -4015,7 +4132,12 @@ f_instanceof(typval_T *argvars, typval_T *rettv)
 	return;
 
     if (object_tv->vval.v_object == NULL)
+    {
+	if (classinfo_tv->vval.v_class == NULL)
+	    // consider null_object as an instance of null_class
+	    rettv->vval.v_number = VVAL_TRUE;
 	return;
+    }
 
     for (; classinfo_tv->v_type != VAR_UNKNOWN; ++classinfo_tv)
     {

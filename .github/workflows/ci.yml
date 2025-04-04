@@ -17,12 +17,12 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
     env:
       CC: ${{ matrix.compiler }}
       GCC_VER: 13
-      CLANG_VER: 19
+      CLANG_VER: 20
       TEST: test
       SRCDIR: ./src
       LEAK_CFLAGS: -DEXITFREE
@@ -48,6 +48,10 @@ jobs:
           - features: tiny
             compiler: gcc
             extra: [nogui]
+          - features: tiny
+            compiler: gcc
+            extra: [nogui]
+            architecture: arm64
           - features: normal
             shadow: ./src/shadow
             compiler: gcc
@@ -73,6 +77,11 @@ jobs:
             compiler: gcc
             coverage: true
             extra: [unittests]
+          - features: huge
+            compiler: gcc
+            coverage: true
+            extra: [unittests]
+            architecture: arm64
           - features: normal
             compiler: gcc
             extra: [vimtags]
@@ -86,6 +95,13 @@ jobs:
           # If any files in the repository are not listed in Filelist this will
           # exit with an error code and list the missing entries.
           make -f ci/unlisted.make
+
+      - name: Check hlgroups (are any new hlgroups added, but not handled in highlight.c)
+        run: |
+          # If any highlight groups have been documented, but not handled in
+          # highlight.c, nor listed as 'intentionally left out' in hlgroups.ignore,
+          # exit with an error code and list the missing entries.
+          make -C ci -f hlgroups.make
 
       - run: sudo dpkg --add-architecture i386
         if: matrix.architecture == 'i386'
@@ -106,6 +122,7 @@ jobs:
             libncurses-dev:${{ matrix.architecture }} \
             libxt-dev:${{ matrix.architecture }} \
             locales-all \
+            software-properties-common \
           )
           if ${{ matrix.features == 'huge' }}; then
             LUA_VER=${{ matrix.lua_ver || '5.4' }}
@@ -115,7 +132,6 @@ jobs:
               lcov \
               libcanberra-dev \
               libperl-dev \
-              python2-dev \
               python3-dev \
               liblua${LUA_VER}-dev \
               lua${LUA_VER} \
@@ -127,7 +143,7 @@ jobs:
               libattr1-dev
             )
           fi
-          sudo apt-get update && sudo apt-get upgrade && sudo apt-get install -y "${PKGS[@]}"
+          sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y "${PKGS[@]}"
 
       - name: Install gcc-${{ env.GCC_VER }}
         if:  matrix.compiler == 'gcc'
@@ -159,7 +175,7 @@ jobs:
           (
           echo "LINUX_VERSION=$(uname -r)"
           echo "NPROC=$(getconf _NPROCESSORS_ONLN)"
-          echo "TMPDIR=${{ runner.temp }}"
+          echo "TMPDIR=$(mktemp -d -p /tmp)"
 
           case "${{ matrix.features }}" in
           tiny)
@@ -176,7 +192,8 @@ jobs:
             if ${{ matrix.python3 == 'stable-abi' }}; then
               PYTHON3_CONFOPT="--with-python3-stable-abi=3.8"
             fi
-            echo "CONFOPT=--enable-perlinterp=${INTERFACE} --enable-pythoninterp=${INTERFACE} --enable-python3interp=${INTERFACE} --enable-rubyinterp=${INTERFACE} --enable-luainterp=${INTERFACE} --enable-tclinterp=${INTERFACE} ${PYTHON3_CONFOPT}"
+            # The ubuntu-24.04 CI runner does not provide a python2 package.
+            echo "CONFOPT=--enable-perlinterp=${INTERFACE} --enable-pythoninterp=no --enable-python3interp=${INTERFACE} --enable-rubyinterp=${INTERFACE} --enable-luainterp=${INTERFACE} --enable-tclinterp=${INTERFACE} ${PYTHON3_CONFOPT}"
             ;;
           esac
 
@@ -249,12 +266,26 @@ jobs:
           "${SRCDIR}"/vim --version
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
+          if ${{ matrix.features == 'huge' }}; then
+            # Also check that optional and dynamic features are configured and working
+            "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 \
+              -c "let g:required=['gettext', 'sodium', 'sound', 'perl', 'python3', 'lua', 'ruby', 'tcl']" \
+              -S ci/if_feat_check.vim -c quit
+          fi
 
       - name: Test
+        if: matrix.architecture != 'arm64'
         timeout-minutes: 25
         run: |
-          do_test() { echo "$*"; sg audio "sg $(id -gn) '$*'"; }
-          do_test make ${SHADOWOPT} ${TEST}
+          make ${SHADOWOPT} ${TEST}
+
+
+      # `sg audio` does not work on arm64 runner due to permission ('Incorrect password' error).
+      - name: Test on arm64
+        if: matrix.architecture == 'arm64'
+        timeout-minutes: 25
+        run: |
+          make ${SHADOWOPT} ${TEST}
 
       - if: ${{ !cancelled() }}
         uses: ./.github/actions/test_artifacts
@@ -367,6 +398,12 @@ jobs:
           "${SRCDIR}"/vim --version
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
+          if ${{ matrix.features == 'huge' }}; then
+            # Also check that optional and dynamic features are configured and working
+            "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 \
+              -c "let g:required=['sound', 'perl', 'python3', 'lua', 'ruby', 'tcl']" \
+              -S ci/if_feat_check.vim -c quit
+          fi
 
       - name: Install packages for testing
         run: |
@@ -400,13 +437,13 @@ jobs:
       PYTHON_VER_DOT: '2.7'
       PYTHON_DIR: 'C:\Python27'
       # Python 3
-      PYTHON3_VER: 311
-      PYTHON3_VER_DOT: '3.11'
+      PYTHON3_VER: 313
+      PYTHON3_VER_DOT: '3.13'
       # Other dependencies
       # winpty
       WINPTY_URL: https://github.com/rprichard/winpty/releases/download/0.4.3/winpty-0.4.3-msvc2015.zip
       # libsodium
-      SODIUM_VER: '1.0.19'
+      SODIUM_VER: '1.0.20'
       # SODIUM_MSVC_URL: https://download.libsodium.org/libsodium/releases/libsodium-%SODIUM_VER%-stable-msvc.zip
       SODIUM_MSVC_URL: https://github.com/jedisct1/libsodium/releases/download/%SODIUM_VER%-RELEASE/libsodium-%SODIUM_VER%-msvc.zip
       SODIUM_MSVC_VER: v143
@@ -583,11 +620,13 @@ jobs:
               DYNAMIC_PYTHON=yes PYTHON=%PYTHON_DIR% ^
               DYNAMIC_PYTHON3=yes PYTHON3=%PYTHON3_DIR% ^
               DYNAMIC_PYTHON3_STABLE_ABI=%PYTHON3_STABLE% ^
-              DYNAMIC_SODIUM=yes SODIUM=%SODIUM_DIR%
+              DYNAMIC_SODIUM=yes SODIUM=%SODIUM_DIR% ^
+              CI_FLAGS=/we4267
           ) else (
             nmake -nologo -f Make_mvc.mak ^
               FEATURES=${{ matrix.features }} ^
-              GUI=%GUI% IME=yes ICONV=yes VIMDLL=${{ matrix.VIMDLL }}
+              GUI=%GUI% IME=yes ICONV=yes VIMDLL=${{ matrix.VIMDLL }} ^
+              CI_FLAGS=/we4267
           )
 
       - name: Build (MinGW)
@@ -638,6 +677,11 @@ jobs:
             src\vim --version || exit 1
             src\vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
             src\vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
+            if "${{ matrix.features }}"=="HUGE" (
+              src\vim -u NONE -i NONE --not-a-term -esNX -V1 ^
+                -c "let g:required=['gettext', 'sodium', 'sound', 'python3', 'lua']" ^
+                -S ci/if_feat_check.vim -c quit
+            )
           )
 
       #- name: Prepare Artifact
@@ -652,6 +696,17 @@ jobs:
       #  with:
       #    name: vim${{ matrix.bits }}-${{ matrix.toolchain }}
       #    path: ./artifacts
+
+      - name: Install packages for testing
+        shell: bash
+        run: |
+          if ${{ matrix.features != 'TINY' }}; then
+            if ${{ matrix.arch == 'x64' }}; then
+              choco install netbeans --no-progress
+            else
+              exit 0
+            fi
+          fi
 
       - name: Test and show the result of testing gVim
         if: matrix.GUI == 'yes' || matrix.VIMDLL == 'yes'

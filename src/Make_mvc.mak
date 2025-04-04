@@ -533,7 +533,7 @@ CON_LIB = $(CON_LIB) /DELAYLOAD:comdlg32.dll /DELAYLOAD:ole32.dll DelayImp.lib
 CFLAGS = -c /W3 /GF /nologo -I. -Iproto -DHAVE_PATHDEF -DWIN32 -DHAVE_STDINT_H \
 		$(CSCOPE_DEFS) $(TERM_DEFS) $(SOUND_DEFS) $(NETBEANS_DEFS) \
 		$(NBDEBUG_DEFS) $(XPM_DEFS) $(SOD_DEFS) $(SOD_INC) \
-		$(CHANNEL_DEFS) $(DEFINES) \
+		$(CHANNEL_DEFS) $(DEFINES) $(CI_CFLAGS) \
 		-DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER) \
 		/source-charset:utf-8
 
@@ -786,6 +786,7 @@ OBJ = \
 	$(OUTDIR)\textobject.obj \
 	$(OUTDIR)\textprop.obj \
 	$(OUTDIR)\time.obj \
+	$(OUTDIR)\tuple.obj \
 	$(OUTDIR)\typval.obj \
 	$(OUTDIR)\ui.obj \
 	$(OUTDIR)\undo.obj \
@@ -1791,6 +1792,8 @@ $(OUTDIR)/textprop.obj:	$(OUTDIR) textprop.c  $(INCL)
 
 $(OUTDIR)/time.obj:	$(OUTDIR) time.c  $(INCL)
 
+$(OUTDIR)/tuple.obj:	$(OUTDIR) tuple.c  $(INCL)
+
 $(OUTDIR)/typval.obj:	$(OUTDIR) typval.c  $(INCL)
 
 $(OUTDIR)/ui.obj:	$(OUTDIR) ui.c  $(INCL)
@@ -2005,6 +2008,7 @@ proto.h: \
 	proto/textobject.pro \
 	proto/textprop.pro \
 	proto/time.pro \
+	proto/tuple.pro \
 	proto/typval.pro \
 	proto/ui.pro \
 	proto/undo.pro \

@@ -87,6 +87,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     abap: ['file.abap'],
     abc: ['file.abc'],
     abel: ['file.abl'],
+    abnf: ['file.abnf'],
     acedb: ['file.wrm'],
     ada: ['file.adb', 'file.ads', 'file.ada', 'file.gpr'],
     ahdl: ['file.tdf'],
@@ -127,10 +128,6 @@ def s:GetFilenameChecks(): dict<list<string>>
     ave: ['file.ave'],
     awk: ['file.awk', 'file.gawk'],
     b: ['file.mch', 'file.ref', 'file.imp'],
-    bash: ['.bashrc', '.bash_profile', '.bash-profile', '.bash_logout',
-           '.bash-logout', '.bash_aliases', '.bash-aliases', '.bash_history',
-           '.bash-history', '/tmp/bash-fc-3Ozjlw', '/tmp/bash-fc.3Ozjlw', 'PKGBUILD',
-           'file.bash', 'file.bats',  'file.cygport'],
     basic: ['file.bas', 'file.bi', 'file.bm'],
     bass: ['file.bass'],
     bc: ['file.bc'],
@@ -216,6 +213,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     dafny: ['file.dfy'],
     dart: ['file.dart', 'file.drt'],
     datascript: ['file.ds'],
+    dax: ['file.dax'],
     dcd: ['file.dcd'],
     deb822sources: ['/etc/apt/sources.list.d/file.sources', 'any/etc/apt/sources.list.d/file.sources'],
     debchangelog: ['changelog.Debian', 'changelog.dch', 'NEWS.Debian', 'NEWS.dch', '/debian/changelog'],
@@ -309,7 +307,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     gitattributes: ['file.git/info/attributes', '.gitattributes', '/.config/git/attributes', '/etc/gitattributes', '/usr/local/etc/gitattributes', 'some.git/info/attributes'] + WhenConfigHome('$XDG_CONFIG_HOME/git/attributes'),
     gitcommit: ['COMMIT_EDITMSG', 'MERGE_MSG', 'TAG_EDITMSG', 'NOTES_EDITMSG', 'EDIT_DESCRIPTION'],
     gitconfig: ['file.git/config', 'file.git/config.worktree', 'file.git/worktrees/x/config.worktree', '.gitconfig', '.gitmodules', 'file.git/modules//config', '/.config/git/config', '/etc/gitconfig', '/usr/local/etc/gitconfig', '/etc/gitconfig.d/file', 'any/etc/gitconfig.d/file', '/.gitconfig.d/file', 'any/.config/git/config', 'any/.gitconfig.d/file', 'some.git/config', 'some.git/modules/any/config'] + WhenConfigHome('$XDG_CONFIG_HOME/git/config'),
-    gitignore: ['file.git/info/exclude', '.gitignore', '/.config/git/ignore', 'some.git/info/exclude'] + WhenConfigHome('$XDG_CONFIG_HOME/git/ignore') + ['.prettierignore', '.rgignore', '.ignore', '.dockerignore', '.npmignore', '.vscodeignore'],
+    gitignore: ['file.git/info/exclude', '.gitignore', '/.config/git/ignore', 'some.git/info/exclude'] + WhenConfigHome('$XDG_CONFIG_HOME/git/ignore') + ['.prettierignore', '.fdignore', '/.config/fd/ignore', '.ignore', '.rgignore', '.dockerignore', '.containerignore', '.npmignore', '.vscodeignore'],
     gitolite: ['gitolite.conf', '/gitolite-admin/conf/file', 'any/gitolite-admin/conf/file'],
     gitrebase: ['git-rebase-todo'],
     gitsendemail: ['.gitsendemail.msg.xxxxxx'],
@@ -397,9 +395,9 @@ def s:GetFilenameChecks(): dict<list<string>>
     jq: ['file.jq'],
     json: ['file.json', 'file.jsonp', 'file.json-patch', 'file.geojson', 'file.webmanifest', 'Pipfile.lock', 'file.ipynb', 'file.jupyterlab-settings',
     '.prettierrc', '.firebaserc', '.stylelintrc', '.lintstagedrc', 'file.slnf', 'file.sublime-project', 'file.sublime-settings', 'file.sublime-workspace',
-    'file.bd', 'file.bda', 'file.xci', 'flake.lock', 'pack.mcmeta', 'deno.lock'],
+    'file.bd', 'file.bda', 'file.xci', 'flake.lock', 'pack.mcmeta', 'deno.lock', '.swcrc'],
     json5: ['file.json5'],
-    jsonc: ['file.jsonc', '.babelrc', '.eslintrc', '.jsfmtrc', '.jshintrc', '.jscsrc', '.vsconfig', '.hintrc', '.swrc', 'jsconfig.json', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig-test.json', '.luaurc', 'bun.lock'],
+    jsonc: ['file.jsonc', '.babelrc', '.eslintrc', '.jsfmtrc', '.jshintrc', '.jscsrc', '.vsconfig', '.hintrc', '.swrc', 'jsconfig.json', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig-test.json', '.luaurc', 'bun.lock', expand("$HOME/.config/VSCodium/User/settings.json")],
     jsonl: ['file.jsonl'],
     jsonnet: ['file.jsonnet', 'file.libsonnet'],
     jsp: ['file.jsp'],
@@ -453,6 +451,9 @@ def s:GetFilenameChecks(): dict<list<string>>
     luau: ['file.luau'],
     lynx: ['lynx.cfg'],
     lyrics: ['file.lrc'],
+    m17ndb: ['any/m17n/file.ali', 'any/m17n/file.cs', 'any/m17n/file.dir', 'any/m17n/file.flt', 'any/m17n/file.fst', 'any/m17n/file.lnm', 'any/m17n/file.mic', 'any/m17n/file.mim', 'any/m17n/file.tbl',
+             'any/.m17n.d/file.ali', 'any/.m17n.d/file.cs', 'any/.m17n.d/file.dir', 'any/.m17n.d/file.flt', 'any/.m17n.d/file.fst', 'any/.m17n.d/file.lnm', 'any/.m17n.d/file.mic', 'any/.m17n.d/file.mim', 'any/.m17n.d/file.tbl',
+             'any/m17n-db/file.ali', 'any/m17n-db/file.cs', 'any/m17n-db/file.dir', 'any/m17n-db/FLT/file.flt', 'any/m17n-db/file.fst', 'any/m17n-db/LANGDATA/file.lnm', 'any/m17n-db/file.mic', 'any/m17n-db/MIM/file.mim', 'any/m17n-db/file.tbl'],
     m3build: ['m3makefile', 'm3overrides'],
     m3quake: ['file.quake', 'cm3.cfg'],
     m4: ['file.at', '.m4_history'],
@@ -556,6 +557,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     nqc: ['file.nqc'],
     nroff: ['file.tr', 'file.nr', 'file.roff', 'file.tmac', 'file.mom', 'tmac.file'],
     nsis: ['file.nsi', 'file.nsh'],
+    ntriples: ['file.nt'],
     nu: ['file.nu'],
     obj: ['file.obj'],
     objdump: ['file.objdump', 'file.cppobjdump'],
@@ -573,7 +575,6 @@ def s:GetFilenameChecks(): dict<list<string>>
     opl: ['file.OPL', 'file.OPl', 'file.OpL', 'file.Opl', 'file.oPL', 'file.oPl', 'file.opL', 'file.opl'],
     ora: ['file.ora'],
     org: ['file.org', 'file.org_archive'],
-    pacmanlog: ['pacman.log'],
     pamconf: ['/etc/pam.conf', '/etc/pam.d/file', 'any/etc/pam.conf', 'any/etc/pam.d/file'],
     pamenv: ['/etc/security/pam_env.conf', '/home/user/.pam_environment', '.pam_environment', 'pam_env.conf'],
     pandoc: ['file.pandoc', 'file.pdk', 'file.pd', 'file.pdc'],
@@ -607,6 +608,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     povini: ['.povrayrc'],
     ppd: ['file.ppd'],
     ppwiz: ['file.it', 'file.ih'],
+    pq: ['file.pq'],
     prisma: ['file.prisma'],
     privoxy: ['file.action'],
     proc: ['file.pc'],
@@ -677,8 +679,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     sas: ['file.sas'],
     sass: ['file.sass'],
     sbt: ['file.sbt'],
-    scala: ['file.scala'],
-    scheme: ['file.scm', 'file.ss', 'file.sld', 'file.stsg', 'any/local/share/supertux2/config', '.lips_repl_history'],
+    scala: ['file.scala', 'file.mill'],
+    scheme: ['file.scm', 'file.ss', 'file.sld', 'file.stsg', 'any/local/share/supertux2/config', '.lips_repl_history', '.guile'],
     scilab: ['file.sci', 'file.sce'],
     screen: ['.screenrc', 'screenrc'],
     scss: ['file.scss'],
@@ -690,12 +692,11 @@ def s:GetFilenameChecks(): dict<list<string>>
     services: ['/etc/services', 'any/etc/services'],
     setserial: ['/etc/serial.conf', 'any/etc/serial.conf'],
     sexplib: ['file.sexp'],
-    sh: ['/usr/share/doc/bash-completion/filter.sh',
-         '/etc/udev/cdsymlinks.conf', 'any/etc/udev/cdsymlinks.conf',
-         '.ash_history', 'any/etc/neofetch/config.conf', '.xprofile',
-         'user-dirs.defaults', 'user-dirs.dirs', 'makepkg.conf', '.makepkg.conf',
-         'file.mdd', '.env', '.envrc', 'devscripts.conf', '.devscripts', 'file.lo',
-         'file.la', 'file.lai'],
+    sh: ['.bashrc', '.bash_profile', '.bash-profile', '.bash_logout', '.bash-logout', '.bash_aliases', '.bash-aliases', '.bash_history', '.bash-history',
+         '/tmp/bash-fc-3Ozjlw', '/tmp/bash-fc.3Ozjlw', 'PKGBUILD', 'file.bash', '/usr/share/doc/bash-completion/filter.sh',
+         '/etc/udev/cdsymlinks.conf', 'any/etc/udev/cdsymlinks.conf', 'file.bats', '.ash_history', 'any/etc/neofetch/config.conf', '.xprofile',
+         'user-dirs.defaults', 'user-dirs.dirs', 'makepkg.conf', '.makepkg.conf', 'file.mdd', 'file.cygport', '.env', '.envrc', 'devscripts.conf',
+         '.devscripts', 'file.lo', 'file.la', 'file.lai'],
     shaderslang: ['file.slang'],
     sieve: ['file.siv', 'file.sieve'],
     sil: ['file.sil'],
@@ -722,6 +723,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     snobol4: ['file.sno', 'file.spt'],
     solidity: ['file.sol'],
     solution: ['file.sln'],
+    spajson: ['any/pipewire/file.conf', 'any/pipewire/file.conf.d/other.conf',
+              'any/wireplumber/file.conf', 'any/wireplumber/file.conf.d/other.conf'],
     sparql: ['file.rq', 'file.sparql'],
     spec: ['file.spec'],
     spice: ['file.sp', 'file.spice'],
@@ -804,6 +807,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     teal: ['file.tl'],
     templ: ['file.templ'],
     template: ['file.tmpl'],
+    tera: ['file.tera', 'file.toml.tera', 'file.html.tera', 'file.css.tera'],
     teraterm: ['file.ttl'],
     terminfo: ['file.ti'],
     'terraform-vars': ['file.tfvars'],
@@ -818,10 +822,15 @@ def s:GetFilenameChecks(): dict<list<string>>
     tla: ['file.tla'],
     tli: ['file.tli'],
     tmux: ['tmuxfile.conf', '.tmuxfile.conf', '.tmux-file.conf', '.tmux.conf', 'tmux-file.conf', 'tmux.conf', 'tmux.conf.local'],
-    toml: ['file.toml', 'Gopkg.lock', 'Pipfile', '/home/user/.cargo/config', '.black'],
+    toml: ['file.toml', 'uv.lock', 'Gopkg.lock', 'Pipfile', '/home/user/.cargo/config', '.black',
+           'any/containers/containers.conf', 'any/containers/containers.conf.d/file.conf',
+           'any/containers/containers.conf.modules/file.conf', 'any/containers/containers.conf.modules/any/file.conf',
+           'any/containers/registries.conf', 'any/containers/registries.conf.d/file.conf',
+           'any/containers/storage.conf'],
     tpp: ['file.tpp'],
-    trace32: ['file.cmm', 'file.t32'],
+    trace32: ['file.cmm', 'file.cmmt', 'file.t32'],
     treetop: ['file.treetop'],
+    trig: ['file.trig'],
     trustees: ['trustees.conf'],
     tsalt: ['file.slt'],
     tsscl: ['file.tsscl'],
@@ -886,7 +895,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     xf86conf: ['xorg.conf', 'xorg.conf-4'],
     xhtml: ['file.xhtml', 'file.xht'],
     xinetd: ['/etc/xinetd.conf', '/etc/xinetd.d/file', 'any/etc/xinetd.conf', 'any/etc/xinetd.d/file'],
-    xkb: ['/usr/share/X11/xkb/compat/pc', '/usr/share/X11/xkb/geometry/pc', '/usr/share/X11/xkb/keycodes/evdev', '/usr/share/X11/xkb/symbols/pc', '/usr/share/X11/xkb/types/pc'],
+    xkb: ['any/xkb/compat/pc', 'any/xkb/geometry/pc', 'any/xkb/keycodes/evdev', 'any/xkb/symbols/pc', 'any/xkb/types/pc',
+          'any/.xkb/compat/pc', 'any/.xkb/geometry/pc', 'any/.xkb/keycodes/evdev', 'any/.xkb/symbols/pc', 'any/.xkb/types/pc'],
     xmath: ['file.msc', 'file.msf'],
     xml: ['/etc/blkid.tab', '/etc/blkid.tab.old', 'file.xmi', 'file.csproj', 'file.csproj.user', 'file.fsproj', 'file.fsproj.user', 'file.vbproj', 'file.vbproj.user', 'file.ui',
           'file.tpm', '/etc/xdg/menus/file.menu', 'fglrxrc', 'file.xlf', 'file.xliff', 'file.xul', 'file.wsdl', 'file.wpl', 'any/etc/blkid.tab', 'any/etc/blkid.tab.old',
@@ -916,8 +926,6 @@ def s:GetFilenameChecks(): dict<list<string>>
           '.zcompdump', '.zlogin', '.zlogout', '.zshenv', '.zshrc', '.zsh_history',
           '.zcompdump-file', '.zlog', '.zlog-file', '.zsh', '.zsh-file',
           'any/etc/zprofile', 'zlog', 'zlog-file', 'zsh', 'zsh-file'],
-
-    help: [$VIMRUNTIME .. '/doc/help.txt'],
     }
 enddef
 
@@ -933,6 +941,9 @@ def s:CheckItems(checks: dict<list<string>>)
 
   for [ft, names] in items(checks)
     for i in range(0, len(names) - 1)
+      if isdirectory(fnameescape(names[i]))
+        continue
+      endif
       new
       try
         exe 'edit ' .. fnameescape(names[i])
@@ -988,11 +999,11 @@ def s:GetScriptChecks(): dict<list<list<string>>>
     clojure: [['#!/path/clojure']],
     scala:  [['#!/path/scala']],
     sh:     [['#!/path/sh'],
+            ['#!/path/bash'],
+            ['#!/path/bash2'],
             ['#!/path/dash'],
             ['#!/path/ksh'],
             ['#!/path/ksh93']],
-    bash:   [['#!/path/bash'],
-            ['#!/path/bash2']],
     csh:    [['#!/path/csh']],
     tcsh:   [['#!/path/tcsh']],
     zsh:    [['#!/path/zsh']],
@@ -1004,6 +1015,7 @@ def s:GetScriptChecks(): dict<list<list<string>>>
     expect: [['#!/path/expect']],
     execline: [['#!/sbin/execlineb -S0'], ['#!/usr/bin/execlineb']],
     gnuplot: [['#!/path/gnuplot']],
+    just:   [['#!/path/just']],
     make:   [['#!/path/make']],
     nix:    [['#!/path/nix-shell']],
     pike:   [['#!/path/pike'],
@@ -1620,6 +1632,36 @@ func Test_haredoc_file()
   unlet g:haredoc_search_depth
 
   filetype off
+endfunc
+
+func Test_help_file()
+  set nomodeline
+  filetype on
+  call assert_true(mkdir('doc', 'pR'))
+
+  call writefile(['some text', 'vim:ft=help:'], 'doc/help.txt', 'D')
+  split doc/help.txt
+  call assert_equal('help', &filetype)
+  bwipe!
+
+  call writefile(['some text', 'Copyright: |manual-copyright| vim:ft=help:'],
+        \ 'doc/help1.txt', 'D')
+  split doc/help1.txt
+  call assert_equal('help', &filetype)
+  bwipe!
+
+  call writefile(['some text'], 'doc/nothelp.txt', 'D')
+  split doc/nothelp.txt
+  call assert_notequal('help', &filetype)
+  bwipe!
+
+  call writefile(['some text', '`vim:ft=help`'], 'doc/nothelp1.txt', 'D')
+  split doc/nothelp1.txt
+  call assert_notequal('help', &filetype)
+  bwipe!
+
+  filetype off
+  set modeline&
 endfunc
 
 func Test_hook_file()
@@ -2835,6 +2877,18 @@ func Test_org_file()
   split Xfile.org
   call assert_equal('org', &filetype)
 
+  filetype off
+endfunc
+
+" Filetypes detected from names of existing files
+func Test_pacmanlog()
+  filetype on
+  for fname in ['pacman.log', 'pacman.log.1', 'pacman.log-20250123']
+    call writefile(["[2025-01-23T01:23:45+0000] [PACMAN] Running 'pacman -S -y --config /etc/pacman.conf --'"], fname, 'D')
+    exe 'split ' .. fname
+    call assert_equal('pacmanlog', &filetype, 'for text: ' .. string(fname))
+    bwipe!
+  endfor
   filetype off
 endfunc
 

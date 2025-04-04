@@ -987,7 +987,7 @@ func Test_popup_complete_backwards()
   call setline(1, ['Post', 'Port', 'Po'])
   let expected=['Post', 'Port', 'Port']
   call cursor(3,2)
-  call feedkeys("A\<C-X>". repeat("\<C-P>", 3). "rt\<cr>", 'tx')
+  call feedkeys("A\<C-X>". repeat("\<C-P>", 3). "rt\<C-Y>", 'tx')
   call assert_equal(expected, getline(1,'$'))
   bwipe!
 endfunc
@@ -997,7 +997,7 @@ func Test_popup_complete_backwards_ctrl_p()
   call setline(1, ['Post', 'Port', 'Po'])
   let expected=['Post', 'Port', 'Port']
   call cursor(3,2)
-  call feedkeys("A\<C-P>\<C-N>rt\<cr>", 'tx')
+  call feedkeys("A\<C-P>\<C-N>rt\<C-Y>", 'tx')
   call assert_equal(expected, getline(1,'$'))
   bwipe!
 endfunc
@@ -1495,22 +1495,6 @@ func Test_pum_highlights_match()
   call VerifyScreenDump(buf, 'Test_pum_highlights_09', {})
   call term_sendkeys(buf, "o\<BS>\<C-R>=Comp()\<CR>")
   call VerifyScreenDump(buf, 'Test_pum_highlights_09', {})
-
-  " issue #15095 wrong select
-  call term_sendkeys(buf, "\<ESC>:set completeopt=fuzzy,menu\<CR>")
-  call TermWait(buf)
-  call term_sendkeys(buf, "S hello helio hero h\<C-X>\<C-P>")
-  call TermWait(buf, 50)
-  call VerifyScreenDump(buf, 'Test_pum_highlights_10', {})
-
-  call term_sendkeys(buf, "\<ESC>S hello helio hero h\<C-X>\<C-P>\<C-P>")
-  call TermWait(buf, 50)
-  call VerifyScreenDump(buf, 'Test_pum_highlights_11', {})
-
-  " issue #15357
-  call term_sendkeys(buf, "\<ESC>S/non_existing_folder\<C-X>\<C-F>")
-  call TermWait(buf, 50)
-  call VerifyScreenDump(buf, 'Test_pum_highlights_15', {})
   call term_sendkeys(buf, "\<C-E>\<Esc>")
 
   call term_sendkeys(buf, ":hi PmenuMatchSel ctermfg=14 ctermbg=NONE\<CR>")
@@ -1521,6 +1505,66 @@ func Test_pum_highlights_match()
   call TermWait(buf, 50)
   call term_sendkeys(buf, "fb")
   call VerifyScreenDump(buf, 'Test_pum_highlights_18', {})
+
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+  call TermWait(buf)
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_completefuzzycollect()
+  CheckScreendump
+  let lines =<< trim END
+    set completefuzzycollect=keyword,files
+    set completeopt=menu,menuone
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let  buf = RunVimInTerminal('-S Xscript', {})
+
+  " issue #15095 wrong select
+  call term_sendkeys(buf, "S hello helio hero h\<C-X>\<C-P>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_completefuzzycollect_01', {})
+
+  call term_sendkeys(buf, "\<ESC>S hello helio hero h\<C-X>\<C-P>\<C-P>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_completefuzzycollect_02', {})
+
+  " issue #15357
+  call term_sendkeys(buf, "\<ESC>S/non_existing_folder\<C-X>\<C-F>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_completefuzzycollect_03', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call TermWait(buf)
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_highlights_match_with_abbr()
+  CheckScreendump
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return {
+            \ 'words': [
+            \ { 'word': 'foobar', 'abbr': "foobar\t\t!" },
+            \ { 'word': 'foobaz', 'abbr': "foobaz\t\t!" },
+            \]}
+    endfunc
+
+    set omnifunc=Omni_test
+    set completeopt=menuone,noinsert
+    hi PmenuMatchSel  ctermfg=6 ctermbg=7
+    hi PmenuMatch     ctermfg=4 ctermbg=225
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let  buf = RunVimInTerminal('-S Xscript', {})
+  call TermWait(buf)
+  call term_sendkeys(buf, "i\<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, "foo")
+  call VerifyScreenDump(buf, 'Test_pum_highlights_19', {})
 
   call term_sendkeys(buf, "\<C-E>\<Esc>")
   call TermWait(buf)
@@ -1859,6 +1903,234 @@ func Test_popup_completion_many_ctrlp()
   norm! G
   call feedkeys("o" .. repeat("\<c-p>", 100), 'tx')
   bw!
+endfunc
+
+func Test_pum_complete_with_special_characters()
+  CheckScreendump
+
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return [#{word: "func ()\n\t\nend", abbr: "function ()",}, #{word: "foobar"}, #{word: "你好\n\t\n我好"}]
+    endfunc
+    set omnifunc=Omni_test
+    inoremap <F5> <Cmd>call complete(col('.'), [ "my\n\tmulti\nline", "my\n\t\tmulti\nline" ])<CR>
+  END
+
+  call writefile(lines, 'Xpreviewscript', 'D')
+  let buf = RunVimInTerminal('-S Xpreviewscript', #{rows: 12})
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_01', {})
+
+  call term_sendkeys(buf, "\<C-N>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_02', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, "Shello  hero\<ESC>hhhhha\<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_03', {})
+
+  call term_sendkeys(buf, "\<C-N>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_04', {})
+
+  call term_sendkeys(buf, "\<C-N>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_05', {})
+
+  call term_sendkeys(buf, "\<C-N>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_06', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, ":hi ComplMatchIns ctermfg=red\<CR>")
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_07', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, "Shello  hero\<ESC>hhhhha\<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_08', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, ":setlocal autoindent tabstop=2 shiftwidth=2\<CR>")
+  call term_sendkeys(buf, "Slocal a = \<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_09', {})
+
+  call term_sendkeys(buf, "\<C-Y>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_10', {})
+
+  call term_sendkeys(buf, "\<ESC>kAlocal b = \<C-X>\<C-O>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_11', {})
+
+  call term_sendkeys(buf, "\<C-Y>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_12', {})
+
+  call term_sendkeys(buf, "\<ESC>ggVGd")
+  call term_sendkeys(buf, ":filetype indent on\<CR>")
+  call term_sendkeys(buf, ":set nocompatible autoindent& shiftwidth& tabstop&\<CR>")
+  call term_sendkeys(buf, ":setlocal ft=lua\<CR>")
+  call term_sendkeys(buf, "S\<F5>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_with_special_characters_13', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_maxwidth()
+  CheckScreendump
+
+  let lines =<< trim END
+    123456789_123456789_123456789_a
+    123456789_123456789_123456789_b
+                123
+  END
+  call writefile(lines, 'Xtest', 'D')
+  let buf = RunVimInTerminal('Xtest', {})
+
+  call term_sendkeys(buf, "G\"zyy")
+  call term_sendkeys(buf, "A\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_01', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>3Gdd\"zp")
+
+  call term_sendkeys(buf, ":set pummaxwidth=10\<CR>")
+  call term_sendkeys(buf, "GA\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_02', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>3Gdd\"zp")
+
+  call term_sendkeys(buf, ":set pummaxwidth=20\<CR>")
+  call term_sendkeys(buf, "GA\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_03', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>3Gdd\"zp")
+
+  call term_sendkeys(buf, ":set pumwidth=20 pummaxwidth=8\<CR>")
+  call term_sendkeys(buf, "GA\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_04', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>3Gdd\"zp")
+
+  call term_sendkeys(buf, ":set lines=10 columns=32\<CR>")
+  call term_sendkeys(buf, "GA\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_09', {'rows': 10, 'cols': 32})
+  call term_sendkeys(buf, "\<Esc>3Gdd\"zp")
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_maxwidth_multibyte()
+  CheckScreendump
+
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return [
+        \ #{word: "123456789_123456789_123456789_"},
+        \ #{word: "一二三四五六七八九十"},
+        \ #{word: "abcdefghij"},
+        \ #{word: "上下左右"},
+        \ ]
+    endfunc
+    set omnifunc=Omni_test
+  END
+  call writefile(lines, 'Xtest', 'D')
+  let  buf = RunVimInTerminal('-S Xtest', {})
+  call TermWait(buf)
+
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_05', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=10\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_06', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  if has('rightleft')
+    call term_sendkeys(buf, ":set rightleft\<CR>")
+    call term_sendkeys(buf, "S\<C-X>\<C-O>")
+    call VerifyScreenDump(buf, 'Test_pum_maxwidth_07', {'rows': 8})
+    call term_sendkeys(buf, "\<Esc>:set norightleft\<CR>")
+  endif
+
+  call term_sendkeys(buf, ":set pummaxwidth=2\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_08', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_maxwidth_with_many_items()
+  CheckScreendump
+
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+    if a:findstart
+      return col(".")
+    endif
+    return [
+      \ #{word: "foo", menu: "fooMenu", kind: "fooKind"},
+      \ #{word: "bar", menu: "barMenu", kind: "barKind"},
+      \ #{word: "baz", menu: "bazMenu", kind: "bazKind"},
+      \ ]
+    endfunc
+    set omnifunc=Omni_test
+  END
+  call writefile(lines, 'Xtest', 'D')
+  let  buf = RunVimInTerminal('-S Xtest', {})
+  call TermWait(buf)
+
+  call term_sendkeys(buf, ":set pummaxwidth=20\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_01', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=19\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_02', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=18\<CR>")   " display Ellipsis
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_03', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=16\<CR>")   " display Ellipsis
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_04', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=15\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_05', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=12\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_06', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=10\<CR>")   " display Ellipsis
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_07', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call term_sendkeys(buf, ":set pummaxwidth=1\<CR>")
+  call term_sendkeys(buf, "S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_maxwidth_with_many_items_08', {'rows': 8})
+  call term_sendkeys(buf, "\<ESC>")
+
+  call StopVimInTerminal(buf)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

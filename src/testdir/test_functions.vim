@@ -2244,6 +2244,21 @@ func Test_input_func()
 
   call assert_fails("call input('F:', '', 'invalid')", 'E180:')
   call assert_fails("call input('F:', '', [])", 'E730:')
+
+  " Test for using "command" as the completion function
+  call feedkeys(":let c = input('Command? ', '', 'command')\<CR>"
+        \ .. "echo bufnam\<C-A>\<CR>", 'xt')
+  call assert_equal('echo bufname(', c)
+
+  " Test for using "shellcmdline" as the completion function
+  call feedkeys(":let c = input('Shell? ', '', 'shellcmdline')\<CR>"
+        \ .. "vim test_functions.\<C-A>\<CR>", 'xt')
+  call assert_equal('vim test_functions.vim', c)
+  if executable('whoami')
+    call feedkeys(":let c = input('Shell? ', '', 'shellcmdline')\<CR>"
+          \ .. "whoam\<C-A>\<CR>", 'xt')
+    call assert_match('\<whoami\>', c)
+  endif
 endfunc
 
 " Test for the inputdialog() function
@@ -2562,6 +2577,83 @@ func Test_getchar()
   call assert_equal("\<M-F2>", getchar(0))
   call assert_equal(0, getchar(0))
 
+  call feedkeys("\<Tab>", '')
+  call assert_equal(char2nr("\<Tab>"), getchar())
+  call feedkeys("\<Tab>", '')
+  call assert_equal(char2nr("\<Tab>"), getchar(-1))
+  call feedkeys("\<Tab>", '')
+  call assert_equal(char2nr("\<Tab>"), getchar(-1, {}))
+  call feedkeys("\<Tab>", '')
+  call assert_equal(char2nr("\<Tab>"), getchar(-1, #{number: v:true}))
+  call assert_equal(0, getchar(0))
+  call assert_equal(0, getchar(1))
+  call assert_equal(0, getchar(0, #{number: v:true}))
+  call assert_equal(0, getchar(1, #{number: v:true}))
+
+  call feedkeys("\<Tab>", '')
+  call assert_equal("\<Tab>", getcharstr())
+  call feedkeys("\<Tab>", '')
+  call assert_equal("\<Tab>", getcharstr(-1))
+  call feedkeys("\<Tab>", '')
+  call assert_equal("\<Tab>", getcharstr(-1, {}))
+  call feedkeys("\<Tab>", '')
+  call assert_equal("\<Tab>", getchar(-1, #{number: v:false}))
+  call assert_equal('', getcharstr(0))
+  call assert_equal('', getcharstr(1))
+  call assert_equal('', getchar(0, #{number: v:false}))
+  call assert_equal('', getchar(1, #{number: v:false}))
+
+  for key in ["C-I", "C-X", "M-x"]
+    let lines =<< eval trim END
+      call feedkeys("\<*{key}>", '')
+      call assert_equal(char2nr("\<{key}>"), getchar())
+      call feedkeys("\<*{key}>", '')
+      call assert_equal(char2nr("\<{key}>"), getchar(-1))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal(char2nr("\<{key}>"), getchar(-1, {{}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal(char2nr("\<{key}>"), getchar(-1, {{'number': 1}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal(char2nr("\<{key}>"), getchar(-1, {{'simplify': 1}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<*{key}>", getchar(-1, {{'simplify': v:false}}))
+      call assert_equal(0, getchar(0))
+      call assert_equal(0, getchar(1))
+    END
+    call v9.CheckLegacyAndVim9Success(lines)
+
+    let lines =<< eval trim END
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<{key}>", getcharstr())
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<{key}>", getcharstr(-1))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<{key}>", getcharstr(-1, {{}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<{key}>", getchar(-1, {{'number': 0}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<{key}>", getcharstr(-1, {{'simplify': 1}}))
+      call feedkeys("\<*{key}>", '')
+      call assert_equal("\<*{key}>", getcharstr(-1, {{'simplify': v:false}}))
+      call assert_equal('', getcharstr(0))
+      call assert_equal('', getcharstr(1))
+    END
+    call v9.CheckLegacyAndVim9Success(lines)
+  endfor
+
+  call assert_fails('call getchar(1, 1)', 'E1206:')
+  call assert_fails('call getcharstr(1, 1)', 'E1206:')
+  call assert_fails('call getchar(1, #{cursor: "foo"})', 'E475:')
+  call assert_fails('call getcharstr(1, #{cursor: "foo"})', 'E475:')
+  call assert_fails('call getchar(1, #{cursor: 0z})', 'E976:')
+  call assert_fails('call getcharstr(1, #{cursor: 0z})', 'E976:')
+  call assert_fails('call getchar(1, #{simplify: 0z})', 'E974:')
+  call assert_fails('call getcharstr(1, #{simplify: 0z})', 'E974:')
+  call assert_fails('call getchar(1, #{number: []})', 'E745:')
+  call assert_fails('call getchar(1, #{number: {}})', 'E728:')
+  call assert_fails('call getcharstr(1, #{number: v:true})', 'E475:')
+  call assert_fails('call getcharstr(1, #{number: v:false})', 'E475:')
+
   call setline(1, 'xxxx')
   call test_setmouse(1, 3)
   let v:mouse_win = 9
@@ -2575,6 +2667,57 @@ func Test_getchar()
   call assert_equal(1, v:mouse_lnum)
   call assert_equal(3, v:mouse_col)
   enew!
+endfunc
+
+func Test_getchar_cursor_position()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    call setline(1, ['foobar', 'foobar', 'foobar'])
+    call cursor(3, 6)
+    nnoremap <F1> <Cmd>echo 1234<Bar>call getchar()<CR>
+    nnoremap <F2> <Cmd>call getchar()<CR>
+    nnoremap <F3> <Cmd>call getchar(-1, {})<CR>
+    nnoremap <F4> <Cmd>call getchar(-1, #{cursor: 'msg'})<CR>
+    nnoremap <F5> <Cmd>call getchar(-1, #{cursor: 'keep'})<CR>
+    nnoremap <F6> <Cmd>call getchar(-1, #{cursor: 'hide'})<CR>
+  END
+  call writefile(lines, 'XgetcharCursorPos', 'D')
+  let buf = RunVimInTerminal('-S XgetcharCursorPos', {'rows': 6})
+  call WaitForAssert({-> assert_equal([3, 6], term_getcursor(buf)[0:1])})
+
+  call term_sendkeys(buf, "\<F1>")
+  call WaitForAssert({-> assert_equal([6, 5], term_getcursor(buf)[0:1])})
+  call assert_true(term_getcursor(buf)[2].visible)
+  call term_sendkeys(buf, 'a')
+  call WaitForAssert({-> assert_equal([3, 6], term_getcursor(buf)[0:1])})
+  call assert_true(term_getcursor(buf)[2].visible)
+
+  for key in ["\<F2>", "\<F3>", "\<F4>"]
+    call term_sendkeys(buf, key)
+    call WaitForAssert({-> assert_equal([6, 1], term_getcursor(buf)[0:1])})
+    call assert_true(term_getcursor(buf)[2].visible)
+    call term_sendkeys(buf, 'a')
+    call WaitForAssert({-> assert_equal([3, 6], term_getcursor(buf)[0:1])})
+    call assert_true(term_getcursor(buf)[2].visible)
+  endfor
+
+  call term_sendkeys(buf, "\<F5>")
+  call TermWait(buf, 50)
+  call assert_equal([3, 6], term_getcursor(buf)[0:1])
+  call assert_true(term_getcursor(buf)[2].visible)
+  call term_sendkeys(buf, 'a')
+  call TermWait(buf, 50)
+  call assert_equal([3, 6], term_getcursor(buf)[0:1])
+  call assert_true(term_getcursor(buf)[2].visible)
+
+  call term_sendkeys(buf, "\<F6>")
+  call WaitForAssert({-> assert_false(term_getcursor(buf)[2].visible)})
+  call term_sendkeys(buf, 'a')
+  call WaitForAssert({-> assert_true(term_getcursor(buf)[2].visible)})
+  call assert_equal([3, 6], term_getcursor(buf)[0:1])
+
+  call StopVimInTerminal(buf)
 endfunc
 
 func Test_libcall_libcallnr()
@@ -2760,6 +2903,7 @@ func Test_platform_name()
   " Is Unix?
   call assert_equal(has('bsd'), has('bsd') && has('unix'))
   call assert_equal(has('hpux'), has('hpux') && has('unix'))
+  call assert_equal(has('hurd'), has('hurd') && has('unix'))
   call assert_equal(has('linux'), has('linux') && has('unix'))
   call assert_equal(has('mac'), has('mac') && has('unix'))
   call assert_equal(has('qnx'), has('qnx') && has('unix'))
@@ -2777,6 +2921,7 @@ func Test_platform_name()
     call assert_equal(uname =~? 'QNX', has('qnx'))
     call assert_equal(uname =~? 'SunOS', has('sun'))
     call assert_equal(uname =~? 'CYGWIN\|MSYS', has('win32unix'))
+    call assert_equal(uname =~? 'GNU', has('hurd'))
   endif
 endfunc
 
@@ -2990,6 +3135,8 @@ endfunc
 func Test_call()
   call assert_equal(3, call('len', [123]))
   call assert_equal(3, 'len'->call([123]))
+  call assert_equal(4, call({ x -> len(x) }, ['xxxx']))
+  call assert_equal(2, call(function('len'), ['xx']))
   call assert_fails("call call('len', 123)", 'E1211:')
   call assert_equal(0, call('', []))
   call assert_equal(0, call('len', test_null_list()))
@@ -4253,6 +4400,99 @@ func Test_base64_encoding()
 
     call assert_fails('call base64_encode([])', 'E1238: Blob required for argument 1')
     call assert_fails('call base64_decode([])', 'E1174: String required for argument 1')
+  END
+  call v9.CheckLegacyAndVim9Success(lines)
+endfunc
+
+" Tests for the str2blob() function
+func Test_str2blob()
+  let lines =<< trim END
+    call assert_equal(0z, str2blob([""]))
+    call assert_equal(0z, str2blob([]))
+    call assert_equal(0z, str2blob(test_null_list()))
+    call assert_equal(0z, str2blob([test_null_string(), test_null_string()]))
+    call assert_fails("call str2blob('')", 'E1211: List required for argument 1')
+    call assert_equal(0z61, str2blob(["a"]))
+    call assert_equal(0z6162, str2blob(["ab"]))
+    call assert_equal(0z610062, str2blob(["a\nb"]))
+    call assert_equal(0z61620A6364, str2blob(["ab", "cd"]))
+    call assert_equal(0z0A, str2blob(["", ""]))
+
+    call assert_equal(0zC2ABC2BB, str2blob(["«»"]))
+    call assert_equal(0zC59DC59F, str2blob(["ŝş"]))
+    call assert_equal(0zE0AE85E0.AE87, str2blob(["அஇ"]))
+    call assert_equal(0zF09F81B0.F09F81B3, str2blob(["🁰🁳"]))
+    call assert_equal(0z616263, str2blob(['abc'], {}))
+    call assert_equal(0zABBB, str2blob(['«»'], {'encoding': 'latin1'}))
+    call assert_equal(0zABBB0AABBB, str2blob(['«»', '«»'], {'encoding': 'latin1'}))
+    call assert_equal(0zC2ABC2BB, str2blob(['«»'], {'encoding': 'utf8'}))
+
+    call assert_equal(0z62, str2blob(["b"], test_null_dict()))
+    call assert_equal(0z63, str2blob(["c"], {'encoding': test_null_string()}))
+
+    call assert_fails("call str2blob(['abc'], [])", 'E1206: Dictionary required for argument 2')
+    call assert_fails("call str2blob(['abc'], {'encoding': []})", 'E730: Using a List as a String')
+    call assert_fails("call str2blob(['abc'], {'encoding': 'ab12xy'})", 'E1516: Unable to convert to ''ab12xy'' encoding')
+    call assert_fails("call str2blob(['ŝş'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
+    call assert_fails("call str2blob(['அஇ'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
+    call assert_fails("call str2blob(['🁰🁳'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
+  END
+  call v9.CheckLegacyAndVim9Success(lines)
+endfunc
+
+" Tests for the blob2str() function
+func Test_blob2str()
+  let lines =<< trim END
+    call assert_equal([], blob2str(0z))
+    call assert_equal([], blob2str(test_null_blob()))
+    call assert_fails("call blob2str([])", 'E1238: Blob required for argument 1')
+    call assert_equal(["ab"], blob2str(0z6162))
+    call assert_equal(["a\nb"], blob2str(0z610062))
+    call assert_equal(["ab", "cd"], blob2str(0z61620A6364))
+
+    call assert_equal(["«»"], blob2str(0zC2ABC2BB))
+    call assert_equal(["ŝş"], blob2str(0zC59DC59F))
+    call assert_equal(["அஇ"], blob2str(0zE0AE85E0.AE87))
+    call assert_equal(["🁰🁳"], blob2str(0zF09F81B0.F09F81B3))
+    call assert_equal(['«»'], blob2str(0zABBB, {'encoding': 'latin1'}))
+    call assert_equal(['«»'], blob2str(0zC2ABC2BB, {'encoding': 'utf8'}))
+    call assert_equal(['«»'], blob2str(0zC2ABC2BB, {'encoding': 'utf-8'}))
+
+    call assert_equal(['a'], blob2str(0z61, test_null_dict()))
+    call assert_equal(['a'], blob2str(0z61, {'encoding': test_null_string()}))
+
+    call assert_equal(["\x80"], blob2str(0z80, {'encoding': 'none'}))
+    call assert_equal(['a', "\x80"], blob2str(0z610A80, {'encoding': 'none'}))
+
+    #" Invalid encoding
+    call assert_fails("call blob2str(0z80)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z610A80)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zC0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zE0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zF0)", "E1515: Unable to convert from 'utf-8' encoding")
+
+    call assert_fails("call blob2str(0z6180)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61C0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61E0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61F0)", "E1515: Unable to convert from 'utf-8' encoding")
+
+    call assert_fails("call blob2str(0zC0C0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61C0C0)", "E1515: Unable to convert from 'utf-8' encoding")
+
+    call assert_fails("call blob2str(0zE0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zE080)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zE080C0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61E080C0)", "E1515: Unable to convert from 'utf-8' encoding")
+
+    call assert_fails("call blob2str(0zF08080C0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0z61F08080C0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zF0)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zF080)", "E1515: Unable to convert from 'utf-8' encoding")
+    call assert_fails("call blob2str(0zF08080)", "E1515: Unable to convert from 'utf-8' encoding")
+
+    call assert_fails("call blob2str(0z6162, [])", 'E1206: Dictionary required for argument 2')
+    call assert_fails("call blob2str(0z6162, {'encoding': []})", 'E730: Using a List as a String')
+    call assert_fails("call blob2str(0z6162, {'encoding': 'ab12xy'})", 'E1515: Unable to convert from ''ab12xy'' encoding')
   END
   call v9.CheckLegacyAndVim9Success(lines)
 endfunc
