@@ -839,6 +839,18 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
+foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+    string(TOUPPER ${config} upper_config)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        LIBRARY_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        RUNTIME_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+    )
+endforeach()
+
+foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/runtime" DESTINATION "${CMAKE_BINARY_DIR}/${config}")
+endforeach()
 
 
 
@@ -1038,6 +1050,14 @@ if(MSVC)
     endif()
 endif()
 
+foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+    string(TOUPPER ${config} upper_config)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        LIBRARY_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        RUNTIME_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+    )
+endforeach()
 
 
 
@@ -1227,6 +1247,15 @@ if(MSVC)
     endif()
 endif()
 
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+    string(TOUPPER ${config} upper_config)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        LIBRARY_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+        RUNTIME_OUTPUT_DIRECTORY_${upper_config} "${CMAKE_BINARY_DIR}/${config}"
+    )
+endforeach()
 
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/runtime" DESTINATION "${OUTPUT_DIR}")
+foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/runtime" DESTINATION "${CMAKE_BINARY_DIR}/${config}")
+endforeach()
