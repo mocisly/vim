@@ -14,6 +14,8 @@
 "   2025 Mar 02 by Vim Project: escape the filename before using :read
 "   2025 Mar 02 by Vim Project: determine the compression using readblob()
 "                               instead of shelling out to file(1)
+"   2025 Apr 16 by Vim Project: decouple from netrw by adding s:WinPath()
+"   2025 May 19 by Vim Project: restore working directory after read/write
 "
 "	Contains many ideas from Michael Toren's <tar.vim>
 "
@@ -146,7 +148,7 @@ fun! tar#Browse(tarfile)
   let lastline= line("$")
   call setline(lastline+1,'" tar.vim version '.g:loaded_tar)
   call setline(lastline+2,'" Browsing tarfile '.a:tarfile)
-  call setline(lastline+3,'" Select a file with cursor and press ENTER')
+  call setline(lastline+3,'" Select a file with cursor and press ENTER, "x" to extract a file')
   keepj $put =''
   keepj sil! 0d
   keepj $
@@ -305,10 +307,10 @@ fun! tar#Read(fname,mode)
 
   " attempt to change to the indicated directory
   try
-   exe "cd ".fnameescape(tmpdir)
+   exe "lcd ".fnameescape(tmpdir)
   catch /^Vim\%((\a\+)\)\=:E344/
    redraw!
-   echohl Error | echo "***error*** (tar#Write) cannot cd to temporary directory" | Echohl None
+   echohl Error | echo "***error*** (tar#Write) cannot lcd to temporary directory" | Echohl None
    let &report= repkeep
    return
   endtry
@@ -318,7 +320,7 @@ fun! tar#Read(fname,mode)
    call s:Rmdir("_ZIPVIM_")
   endif
   call mkdir("_ZIPVIM_")
-  cd _ZIPVIM_
+  lcd _ZIPVIM_
 
   if has("win32unix") && executable("cygpath")
    " assuming cygwin
@@ -412,9 +414,9 @@ fun! tar#Read(fname,mode)
    redraw!
 
 if v:shell_error != 0
-   cd ..
+   lcd ..
    call s:Rmdir("_ZIPVIM_")
-   exe "cd ".fnameescape(curdir)
+   exe "lcd ".fnameescape(curdir)
    echohl Error | echo "***error*** (tar#Read) sorry, unable to open or extract ".tarfile." with ".fname | echohl None
   endif
 
@@ -431,14 +433,16 @@ if v:shell_error != 0
   set nomod
 
   let &report= repkeep
+  exe "lcd ".fnameescape(curdir)
+  silent exe "file tarfile::".escape_file
 endfun
 
 " ---------------------------------------------------------------------
 " tar#Write: {{{2
 fun! tar#Write(fname)
+  let pwdkeep= getcwd()
   let repkeep= &report
   set report=10
-  " temporary buffer variable workaround because too fucking tired. but it works now
   let curdir= b:curdir
   let tmpdir= b:tmpdir
 
@@ -562,9 +566,9 @@ fun! tar#Write(fname)
   endif
 
   " cleanup and restore current directory
-  cd ..
+  lcd ..
   call s:Rmdir("_ZIPVIM_")
-  exe "cd ".fnameescape(curdir)
+  exe "lcd ".fnameescape(pwdkeep)
   setlocal nomod
 
   let &report= repkeep
@@ -615,7 +619,7 @@ fun! tar#Extract()
   let tarball = expand("%")
   let tarbase = substitute(tarball,'\..*$','','')
 
-  let extractcmd= netrw#WinPath(g:tar_extractcmd)
+  let extractcmd= s:WinPath(g:tar_extractcmd)
   if filereadable(tarbase.".tar")
    call system(extractcmd." ".shellescape(tarbase).".tar ".shellescape(fname))
    if v:shell_error != 0
@@ -766,6 +770,25 @@ fun! s:Header(fname)
 endfun
 
 " ---------------------------------------------------------------------
+" s:WinPath: {{{2
+fun! s:WinPath(path)
+  if (!g:netrw_cygwin || &shell !~ '\%(\<bash\>\|\<zsh\>\)\%(\.exe\)\=$') && has("win32")
+    " remove cygdrive prefix, if present
+    let path = substitute(a:path, '/cygdrive/\(.\)', '\1:', '')
+    " remove trailing slash (Win95)
+    let path = substitute(path, '\(\\\|/\)$', '', 'g')
+    " remove escaped spaces
+    let path = substitute(path, '\ ', ' ', 'g')
+    " convert slashes to backslashes
+    let path = substitute(path, '/', '\', 'g')
+  else
+    let path = a:path
+  endif
+
+  return path
+endfun
+
+" ---------------------------------------------------------------------
 " tar#Vimuntar: installs a tarball in the user's .vim / vimfiles directory {{{2
 fun! tar#Vimuntar(...)
   let tarball = expand("%")
@@ -786,8 +809,8 @@ fun! tar#Vimuntar(...)
 
   if simplify(curdir) != simplify(vimhome)
    " copy (possibly compressed) tarball to .vim/vimfiles
-   call system(netrw#WinPath(g:tar_copycmd)." ".shellescape(tartail)." ".shellescape(vimhome))
-   exe "cd ".fnameescape(vimhome)
+   call system(s:WinPath(g:tar_copycmd)." ".shellescape(tartail)." ".shellescape(vimhome))
+   exe "lcd ".fnameescape(vimhome)
   endif
 
   " if necessary, decompress the tarball; then, extract it
@@ -801,14 +824,14 @@ fun! tar#Vimuntar(...)
     if simplify(curdir) != simplify(tarhome)
      " remove decompressed tarball, restore directory
      call delete(tartail.".tar")
-     exe "cd ".fnameescape(curdir)
+     exe "lcd ".fnameescape(curdir)
     endif
     return
    endif
   else
    call vimball#Decompress(tartail,0)
   endif
-  let extractcmd= netrw#WinPath(g:tar_extractcmd)
+  let extractcmd= s:WinPath(g:tar_extractcmd)
   call system(extractcmd." ".shellescape(tarbase.".tar"))
 
   " set up help
@@ -819,7 +842,7 @@ fun! tar#Vimuntar(...)
   if simplify(tarhome) != simplify(vimhome)
    " remove decompressed tarball, restore directory
    call delete(vimhome."/".tarbase.".tar")
-   exe "cd ".fnameescape(curdir)
+   exe "lcd ".fnameescape(curdir)
   endif
 endfun
 

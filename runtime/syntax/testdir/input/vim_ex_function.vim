@@ -177,7 +177,7 @@ function Foo(...)
 endfunction
 
 
-" Issue #16243 (vimscript def parameters syntax highlight is wrong)
+" Issue #16243 (Vim script def parameters syntax highlight is wrong)
 
 function Test(lines = [line('.'), line('.')])
 endfunction
@@ -210,4 +210,20 @@ delfunction Foo
 delfunction foo.bar
 delfunction! Foo
 delfunction foo.bar
+
+
+" Issue https://github.com/vim/vim/pull/17420#issuecomment-2927798687
+" (arg named /fu%\[nction]/)
+
+" FIXME
+silent! delfunc! func
+
+
+" Issue https://github.com/vim/vim/pull/17420#issuecomment-2927798687
+" (function named /s:fu%\[nction]/)
+
+" FIXME
+func! s:func(_, func)
+    return a:func
+endfunc
 

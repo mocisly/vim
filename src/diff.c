@@ -781,7 +781,7 @@ diff_write_buffer(buf_T *buf, diffin_T *din, linenr_T start, linenr_T end)
     char_u	*ptr;
 
     if (end < 0)
-      end = buf->b_ml.ml_line_count;
+	end = buf->b_ml.ml_line_count;
 
     if (buf->b_ml.ml_flags & ML_EMPTY)
     {
@@ -2395,10 +2395,10 @@ diff_check_with_linestatus(win_T *wp, linenr_T lnum, int *linestatus)
     if (lnum >= wp->w_topline && lnum < wp->w_botline
 				&& !dp->is_linematched && diff_linematch(dp)
 				&& diff_check_sanity(curtab, dp))
-      run_linematch_algorithm(dp);
+	run_linematch_algorithm(dp);
 
     if (dp->is_linematched)
-      return linematched_filler_lines(dp, idx, lnum, linestatus);
+	return linematched_filler_lines(dp, idx, lnum, linestatus);
 
     if (lnum < dp->df_lnum[idx] + dp->df_count[idx])
     {
@@ -3229,7 +3229,7 @@ diff_refine_inline_char_highlight(diff_T *dp_orig, garray_T *linemap, int idx1)
 }
 
 /*
- * Find the inline difference within a diff block among differnt buffers.  Do
+ * Find the inline difference within a diff block among different buffers.  Do
  * this by splitting each block's content into characters or words, and then
  * use internal xdiff to calculate the per-character/word diff.  The result is
  * stored in dp instead of returned by the function.
@@ -3309,10 +3309,17 @@ diff_find_change_inline_diff(
 	    char_u *s;
 	    for (s = curline; *s != NUL;)
 	    {
-		// Always use the first buffer's 'iskeyword' to have a consistent diff
 		int new_in_keyword = FALSE;
 		if (diff_flags & DIFF_INLINE_WORD)
-		    new_in_keyword = vim_iswordp_buf(s, curtab->tp_diffbuf[file1_idx]);
+		{
+		    // Always use the first buffer's 'iskeyword' to have a
+		    // consistent diff.
+		    // For multibyte chars, only treat alphanumeric chars
+		    // (class 2) as "word", as other classes such as emojis and
+		    // CJK ideographs do not usually benefit from word diff as
+		    // Vim doesn't have a good way to segment them.
+		    new_in_keyword = (mb_get_class_buf(s, curtab->tp_diffbuf[file1_idx]) == 2);
+		}
 		if (in_keyword && !new_in_keyword)
 		{
 		    ga_append(curstr, NL);
@@ -4541,7 +4548,7 @@ f_diff_hlID(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     {
 	// Remember the results if using simple since it's recalculated per
 	// call. Otherwise just call diff_find_change() every time since
-	// internally the result is cached interally.
+	// internally the result is cached internally.
 	cache_results = FALSE;
     }
 

@@ -439,7 +439,7 @@ ignorecase(char_u *pat)
 }
 
 /*
- * As ignorecase() put pass the "ic" and "scs" flags.
+ * As ignorecase() but pass the "ic" and "scs" flags.
  */
     int
 ignorecase_opt(char_u *pat, int ic_in, int scs)
@@ -3291,12 +3291,9 @@ update_search_stat(
 	       || (dirc == '/' && LT_POS(p, lastpos)));
 
     // If anything relevant changed the count has to be recomputed.
-    // MB_STRNICMP ignores case, but we should not ignore case.
-    // Unfortunately, there is no MB_STRNICMP function.
-    // XXX: above comment should be "no MB_STRCMP function" ?
     if (!(chgtick == CHANGEDTICK(curbuf)
 	&& (lastpat != NULL
-	    && MB_STRNICMP(lastpat, spats[last_idx].pat, lastpatlen) == 0
+	    && STRNCMP(lastpat, spats[last_idx].pat, lastpatlen) == 0
 	    && lastpatlen == spats[last_idx].patlen
 	)
 	&& EQUAL_POS(lastpos, *cursor_pos)
@@ -4518,13 +4515,13 @@ fuzzy_match_compute_score(
 	}
 
 	// Check exact match condition
-        if (currIdx != (int_u)i)
+	if (currIdx != (int_u)i)
 	    is_exact_match = FALSE;
     }
 
     // Boost score for exact matches
     if (is_exact_match && numMatches == strSz)
-        score += EXACT_MATCH_BONUS;
+	score += EXACT_MATCH_BONUS;
 
     return score;
 }
@@ -5265,7 +5262,7 @@ fuzzy_match_str_in_line(
     char_u	*line_end = NULL;
 
     if (str == NULL || pat == NULL)
-        return found;
+	return found;
     line_end = find_line_end(str);
 
     while (str < line_end)
@@ -5333,18 +5330,19 @@ search_for_fuzzy_match(
     int		whole_line = ctrl_x_mode_whole_line();
 
     if (buf == curbuf)
-        circly_end = *start_pos;
+	circly_end = *start_pos;
     else
     {
-        circly_end.lnum = buf->b_ml.ml_line_count;
-        circly_end.col = 0;
-        circly_end.coladd = 0;
+	circly_end.lnum = buf->b_ml.ml_line_count;
+	circly_end.col = 0;
+	circly_end.coladd = 0;
     }
 
     if (whole_line && start_pos->lnum != pos->lnum)
 	current_pos.lnum += dir;
 
-    do {
+    do
+    {
 
 	// Check if looped around and back to start position
 	if (looped_around && EQUAL_POS(current_pos, circly_end))
@@ -5370,30 +5368,6 @@ search_for_fuzzy_match(
 						    len, &current_pos, score);
 		    if (found_new_match)
 		    {
-			if (ctrl_x_mode_normal())
-			{
-			    if (STRNCMP(*ptr, pattern, *len) == 0 && pattern[*len] == NUL)
-			    {
-				char_u	*next_word_end = find_word_start(*ptr + *len);
-				if (*next_word_end != NUL && *next_word_end != NL)
-				{
-				    // Find end of the word.
-				    if (has_mbyte)
-					while (*next_word_end != NUL)
-					{
-					    int l = (*mb_ptr2len)(next_word_end);
-
-					    if (l < 2 && !vim_iswordc(*next_word_end))
-						break;
-					    next_word_end += l;
-					}
-				    else
-				       next_word_end = find_word_end(next_word_end);
-				}
-
-				*len = next_word_end - *ptr;
-			    }
-			}
 			*pos = current_pos;
 			break;
 		    }

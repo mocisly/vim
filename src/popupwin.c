@@ -1354,15 +1354,15 @@ popup_adjust_position(win_T *wp)
 	{
 	    wp->w_wincol = wantcol - 1;
 	    // Need to see at least one character after the decoration.
-	    if (wp->w_wincol > Columns - left_extra - 1)
-		wp->w_wincol = Columns - left_extra - 1;
+	    if (wp->w_wincol > firstwin->w_wincol + topframe->fr_width - left_extra - 1)
+		wp->w_wincol = firstwin->w_wincol + topframe->fr_width - left_extra - 1;
 	}
     }
 
     // When centering or right aligned, use maximum width.
     // When left aligned use the space available, but shift to the left when we
     // hit the right of the screen.
-    maxspace = Columns - wp->w_wincol - left_extra;
+    maxspace = firstwin->w_wincol + topframe->fr_width - wp->w_wincol - left_extra;
     maxwidth = maxspace;
     if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
     {
@@ -1545,7 +1545,7 @@ popup_adjust_position(win_T *wp)
     }
     if (center_hor)
     {
-	wp->w_wincol = (Columns - wp->w_width - extra_width) / 2;
+	wp->w_wincol = (firstwin->w_wincol + topframe->fr_width - wp->w_width - extra_width) / 2;
 	if (wp->w_wincol < 0)
 	    wp->w_wincol = 0;
     }
@@ -1581,9 +1581,9 @@ popup_adjust_position(win_T *wp)
 	// try to show the right border and any scrollbar
 	want_col = left_extra + wp->w_width + right_extra;
 	if (want_col > 0 && wp->w_wincol > 0
-					 && wp->w_wincol + want_col >= Columns)
+					 && wp->w_wincol + want_col >= firstwin->w_wincol + topframe->fr_width)
 	{
-	    wp->w_wincol = Columns - want_col;
+	    wp->w_wincol = firstwin->w_wincol + topframe->fr_width - want_col;
 	    if (wp->w_wincol < 0)
 		wp->w_wincol = 0;
 	}
@@ -1672,6 +1672,13 @@ popup_adjust_position(win_T *wp)
 	wp->w_winrow = Rows - 1;
     else if (wp->w_winrow < 0)
 	wp->w_winrow = 0;
+
+    if (wp->w_wincol + wp->w_width > firstwin->w_wincol + topframe->fr_width)
+	wp->w_wincol = firstwin->w_wincol + topframe->fr_width - wp->w_width;
+    else if (wp->w_wincol < firstwin->w_wincol)
+	wp->w_wincol = firstwin->w_wincol;
+    if (wp->w_wincol < 0)
+	wp->w_wincol = 0;
 
     if (wp->w_height != org_height)
 	win_comp_scroll(wp);
@@ -3592,8 +3599,8 @@ popup_do_filter(int c)
     {
 	popup_reset_handled(POPUP_HANDLED_2);
 	wp = find_next_popup(FALSE, POPUP_HANDLED_2);
-        if (wp != NULL)
-        {
+	if (wp != NULL)
+	{
 	    popup_close_with_retval(wp, -1);
 	    res = TRUE;
 	}
@@ -4081,7 +4088,7 @@ update_popups(void (*win_update)(win_T *wp))
 	// win_update() doesn't handle them.
 	top_off = popup_top_extra(wp);
 	left_extra = wp->w_popup_padding[3] + wp->w_popup_border[3]
-							 - wp->w_popup_leftoff;
+							- wp->w_popup_leftoff;
 	if (wp->w_wincol + left_extra < 0)
 	    left_extra = -wp->w_wincol;
 	wp->w_winrow += top_off;
@@ -4229,7 +4236,7 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    padcol = wincol + wp->w_popup_border[3];
 	    padendcol = wp->w_wincol + total_width - wp->w_popup_border[1]
-							 - wp->w_has_scrollbar;
+							- wp->w_has_scrollbar;
 	    if (padcol < 0)
 	    {
 		padendcol += padcol;

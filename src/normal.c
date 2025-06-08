@@ -2786,7 +2786,7 @@ nv_zet(cmdarg_T *cap)
 		}
 		break;
 
-		// "zp", "zP" in block mode put without addind trailing spaces
+		// "zp", "zP" in block mode put without adding trailing spaces
     case 'P':
     case 'p':  nv_put(cap);
 	       break;
@@ -3074,10 +3074,10 @@ handle_tabmenu(void)
     {
 	case TABLINE_MENU_CLOSE:
 	    if (current_tab == 0)
-		do_cmdline_cmd((char_u *)"tabclose");
+		do_cmdline_cmd((char_u *)"confirm tabclose");
 	    else
 	    {
-		vim_snprintf((char *)IObuff, IOSIZE, "tabclose %d",
+		vim_snprintf((char *)IObuff, IOSIZE, "confirm tabclose %d",
 								 current_tab);
 		do_cmdline_cmd(IObuff);
 	    }
@@ -3579,7 +3579,7 @@ nv_ident(cmdarg_T *cap)
 	    aux_ptr = (char_u *)(magic_isset() ? "/?.*~[^$\\" : "/?^$\\");
 	else if (tag_cmd)
 	{
-	    if (curbuf->b_help)
+	    if (STRCMP(curbuf->b_p_ft, "help") == 0)
 		// ":help" handles unescaped argument
 		aux_ptr = (char_u *)"";
 	    else
@@ -4059,7 +4059,7 @@ nv_gotofile(cmdarg_T *cap)
 #endif
 
     if (!check_can_set_curbuf_disabled())
-      return;
+	return;
 
     ptr = grab_file_name(cap->count1, &lnum);
 

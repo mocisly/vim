@@ -684,6 +684,13 @@ func Test_getcompletion()
   let l = getcompletion('kill', 'expression')
   call assert_equal([], l)
 
+  let l = getcompletion('', 'filetypecmd')
+  call assert_equal(["indent", "off", "on", "plugin"], l)
+  let l = getcompletion('not', 'filetypecmd')
+  call assert_equal([], l)
+  let l = getcompletion('o', 'filetypecmd')
+  call assert_equal(['off', 'on'], l)
+
   let l = getcompletion('tag', 'function')
   call assert_true(index(l, 'taglist(') >= 0)
   let l = getcompletion('paint', 'function')
@@ -2630,6 +2637,7 @@ endfunc
 " Test for using a popup menu for the command line completion matches
 " (wildoptions=pum)
 func Test_wildmenu_pum()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let commands =<< trim [CODE]
@@ -2922,6 +2930,7 @@ func Test_wildmenumode_with_pum()
 endfunc
 
 func Test_wildmenu_with_pum_foldexpr()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -2947,6 +2956,7 @@ endfunc
 " The popup menu should be positioned correctly over the status line of the
 " bottom-most window.
 func Test_wildmenu_pum_from_terminal()
+  CheckScreendump
   CheckRunVimInTerminal
   let python = PythonProg()
   call CheckPython(python)
@@ -2967,6 +2977,7 @@ func Test_wildmenu_pum_from_terminal()
 endfunc
 
 func Test_wildmenu_pum_odd_wildchar()
+  CheckScreendump
   CheckRunVimInTerminal
 
   " Test odd wildchar interactions with pum. Make sure they behave properly
@@ -3206,6 +3217,26 @@ func Test_fuzzy_completion_behave()
   call feedkeys(":behave win\<C-D>\<F4>\<C-B>\"\<CR>", 'tx')
   call assert_equal('mswin', g:Sline)
   call assert_equal('"behave win', @:)
+  set wildoptions&
+endfunc
+
+" :filetype suboptions completion
+func Test_completion_filetypecmd()
+  set wildoptions&
+  call feedkeys(":filetype \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off on plugin', @:)
+  call feedkeys(":filetype plugin \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype plugin indent off on', @:)
+  call feedkeys(":filetype indent \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off on plugin', @:)
+  call feedkeys(":filetype i\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent', @:)
+  call feedkeys(":filetype p\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype plugin', @:)
+  call feedkeys(":filetype o\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype off on', @:)
+  call feedkeys(":filetype indent of\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off', @:)
   set wildoptions&
 endfunc
 
@@ -4240,7 +4271,7 @@ func Test_ex_command_completion()
   " required for :*
   set cpo+=*
   let list = filter(getcompletion('', 'command'), 'exists(":" . v:val) == 0')
-  " :++ and :-- are only valid in Vim9 Script context, so they can be ignored
+  " :++ and :-- are only valid in Vim9 script context, so they can be ignored
   call assert_equal(['++', '--'], sort(list))
   call assert_equal(2, exists(':k'))
   call assert_equal(0, exists(':ke'))
@@ -4266,6 +4297,57 @@ func Test_cd_bslash_completion_windows()
   call feedkeys(":cd XXXa\\_b\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"cd XXXa\_b\', @:)
   let &shellslash = save_shellslash
+endfunc
+
+" Test cmdcomplete_info() with CmdlineLeavePre autocmd
+func Test_cmdcomplete_info()
+  augroup test_CmdlineLeavePre
+    autocmd!
+    " Calling expand() should not interfere with cmdcomplete_info().
+    autocmd CmdlineLeavePre * call expand('test_cmdline.*')
+    autocmd CmdlineLeavePre * let g:cmdcomplete_info = string(cmdcomplete_info())
+  augroup END
+  new
+  call assert_equal({}, cmdcomplete_info())
+  call feedkeys(":h echom\<cr>", "tx") " No expansion
+  call assert_equal('{}', g:cmdcomplete_info)
+  call feedkeys(":h echoms\<tab>\<cr>", "tx")
+  call assert_equal('{''cmdline_orig'': '''', ''pum_visible'': 0, ''matches'': [], ''selected'': 0}', g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 0, ''matches'': ['':echom'', '':echomsg''], ''selected'': 0}',
+        \ g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 0, ''matches'': ['':echom'', '':echomsg''], ''selected'': 1}',
+        \ g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<tab>\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 0, ''matches'': ['':echom'', '':echomsg''], ''selected'': -1}',
+        \ g:cmdcomplete_info)
+
+  set wildoptions=pum
+  call feedkeys(":h echoms\<tab>\<cr>", "tx")
+  call assert_equal('{''cmdline_orig'': '''', ''pum_visible'': 0, ''matches'': [], ''selected'': 0}', g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 1, ''matches'': ['':echom'', '':echomsg''], ''selected'': 0}',
+        \ g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 1, ''matches'': ['':echom'', '':echomsg''], ''selected'': 1}',
+        \ g:cmdcomplete_info)
+  call feedkeys(":h echom\<tab>\<tab>\<tab>\<cr>", "tx")
+  call assert_equal(
+        \ '{''cmdline_orig'': ''h echom'', ''pum_visible'': 1, ''matches'': ['':echom'', '':echomsg''], ''selected'': -1}',
+        \ g:cmdcomplete_info)
+  bw!
+  set wildoptions&
+endfunc
+
+func Test_redrawtabpanel_error()
+  CheckNotFeature tabpanel
+  call assert_fails(':redrawtabpanel', 'E1547:')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

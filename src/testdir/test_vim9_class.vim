@@ -1921,6 +1921,21 @@ def Test_class_member()
   END
   v9.CheckSourceFailure(lines, "E1004: White space required before and after '='", 3)
 
+  # Space is not allowed before the object member variable name
+  lines =<< trim END
+    vim9script
+    class A
+      var n: number = 10
+    endclass
+
+    def Fn()
+      var a = A.new()
+      var y = a. n
+    enddef
+    defcompile
+  END
+  v9.CheckSourceFailure(lines, "E1202: No white space allowed after '.': . n", 2)
+
   # Access a non-existing member
   lines =<< trim END
     vim9script
@@ -3469,6 +3484,39 @@ def Test_super_dispatch()
     assert_equal('A', TestA(C.new()))
   END
   v9.CheckSourceSuccess(lines)
+
+  # Invoking a class method in the parent class using "super" should fail
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def Fn(): string
+        return 'A'
+      enddef
+    endclass
+
+    class B extends A
+      static def Fn(): string
+        return super.Fn()
+      enddef
+    endclass
+    defcompile
+  END
+  v9.CheckSourceFailure(lines, 'E1325: Method "Fn" not found in class "B"')
+
+  # Missing name after "super" keyword
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    class B extends A
+      def Fn()
+        var x = super.()
+      enddef
+    endclass
+    defcompile
+  END
+  v9.CheckSourceFailure(lines, 'E1127: Missing name after dot', 1)
 enddef
 
 def Test_class_import()
@@ -12454,6 +12502,24 @@ def Test_super_keyword()
   END
   v9.CheckSourceSuccess(lines)
 
+  # Using 'super' to access an static class variable in the parent should fail
+  lines =<< trim END
+    vim9script
+
+    class A
+      static var foo: string = 'xxx'
+    endclass
+
+    class B extends A
+      def GetString(): string
+        return super.foo
+      enddef
+    endclass
+
+    defcompile
+  END
+  v9.CheckSourceFailure(lines, 'E1326: Variable "foo" not found in object "B"')
+
   # Using super to access an overriden method in the parent class
   lines =<< trim END
     vim9script
@@ -12476,6 +12542,35 @@ def Test_super_keyword()
 
     var b = B.new()
     assert_equal('A.Foo B.Foo', b.Bar())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Test for using super in a lambda function to invoke a base class method from
+  # the new() method.
+  lines =<< trim END
+    vim9script
+
+    def G(F: func): string
+      return F()
+    enddef
+
+    class Base
+      def F(): string
+        return 'Base.F()'
+      enddef
+    endclass
+
+    class Foo extends Base
+      var s: string = 'x'
+      def new()
+        this.s = G((): string => {
+          return super.F()
+        })
+      enddef
+    endclass
+
+    var f = Foo.new()
+    assert_equal('Base.F()', f.s)
   END
   v9.CheckSourceSuccess(lines)
 enddef
@@ -12980,6 +13075,82 @@ def Test_object_of_class_type()
     var x: object<any,any>
   END
   v9.CheckSourceFailure(lines, 'E488: Trailing characters: ,any>')
+
+  lines =<< trim END
+    var x: object<number>
+  END
+  v9.CheckSourceDefAndScriptFailure(lines, [
+        \ 'E1353: Class name not found: <number>',
+        \ 'E1353: Class name not found: <number>'])
+enddef
+
+" Test for the object and class member type
+def Test_obj_class_member_type()
+  var lines =<< trim END
+    vim9script
+    class L
+      var l: list<number>
+    endclass
+    var obj_L = L.new([10, 20])
+    assert_equal('list<number>', typename(obj_L.l))
+    obj_L.l->add('a')
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected number but got string', 7)
+
+  lines =<< trim END
+    vim9script
+    class T
+      var t: list<tuple<string>>
+    endclass
+    var obj_T = T.new([('a',), ('b',)])
+    assert_equal('list<tuple<string>>', typename(obj_T.t))
+    obj_T.t->add([('c', 10, true)])
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected tuple<string> but got list<tuple<string, number, bool>>', 7)
+
+  lines =<< trim END
+    vim9script
+    class D
+      var d: dict<number>
+    endclass
+    var obj_D = D.new({a: 10, b: 20})
+    assert_equal('dict<number>', typename(obj_D.d))
+    obj_D.d->extend({c: 'C'})
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 2: type mismatch, expected dict<number> but got dict<string> in extend()', 7)
+
+  lines =<< trim END
+    vim9script
+    class L
+      public static var l: list<number>
+    endclass
+    L.l = [10, 20]
+    assert_equal('list<number>', typename(L.l))
+    L.l->add('a')
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected number but got string', 7)
+
+  lines =<< trim END
+    vim9script
+    class T
+      public static var t: list<tuple<string>>
+    endclass
+    T.t = [('a',), ('b',)]
+    assert_equal('list<tuple<string>>', typename(T.t))
+    T.t->add([('c', 10, true)])
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected tuple<string> but got list<tuple<string, number, bool>>', 7)
+
+  lines =<< trim END
+    vim9script
+    class D
+      public static var d: dict<number>
+    endclass
+    D.d = {a: 10, b: 20}
+    assert_equal('dict<number>', typename(D.d))
+    D.d->extend({c: 'C'})
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 2: type mismatch, expected dict<number> but got dict<string> in extend()', 7)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

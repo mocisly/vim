@@ -1710,7 +1710,7 @@ static char *(key_names[]) =
     // Do those ones first, both may cause a screen redraw.
     "Co",
     // disabled, because it switches termguicolors, but that
-    // is noticable and confuses users
+    // is noticeable and confuses users
     // "RGB",
 # endif
     "ku", "kd", "kr", "kl",
@@ -3630,7 +3630,17 @@ win_new_shellsize(void)
     if (old_Columns != Columns)
     {
 	old_Columns = Columns;
-	shell_new_columns();	// update window sizes
+
+	tabpage_T *save_curtab = curtab;
+	tabpage_T *tp;
+	FOR_ALL_TABPAGES(tp)
+	{
+	    unuse_tabpage(curtab);
+	    use_tabpage(tp);
+	    shell_new_columns();
+	}
+	unuse_tabpage(curtab);
+	use_tabpage(save_curtab);
     }
 }
 
@@ -4454,7 +4464,7 @@ scroll_region_set(win_T *wp, int off)
 {
     OUT_STR(tgoto((char *)T_CS, W_WINROW(wp) + wp->w_height - 1,
 							 W_WINROW(wp) + off));
-    if (*T_CSV != NUL && wp->w_width != Columns)
+    if (*T_CSV != NUL && wp->w_width != topframe->fr_width)
 	OUT_STR(tgoto((char *)T_CSV, wp->w_wincol + wp->w_width - 1,
 							       wp->w_wincol));
     screen_start();		    // don't know where cursor is now
@@ -4468,7 +4478,9 @@ scroll_region_reset(void)
 {
     OUT_STR(tgoto((char *)T_CS, (int)Rows - 1, 0));
     if (*T_CSV != NUL)
-	OUT_STR(tgoto((char *)T_CSV, (int)Columns - 1, 0));
+	OUT_STR(tgoto((char *)T_CSV,
+		    firstwin->w_wincol + topframe->fr_width - 1,
+		    firstwin->w_wincol));
     screen_start();		    // don't know where cursor is now
 }
 
@@ -7302,13 +7314,13 @@ update_tcap(int attr)
 	return;
     while (p->bt_string != NULL)
     {
-      if (p->bt_entry == (int)KS_ME)
-	  p->bt_string = &ksme_str[0];
-      else if (p->bt_entry == (int)KS_MR)
-	  p->bt_string = &ksmr_str[0];
-      else if (p->bt_entry == (int)KS_MD)
-	  p->bt_string = &ksmd_str[0];
-      ++p;
+	if (p->bt_entry == (int)KS_ME)
+	    p->bt_string = &ksme_str[0];
+	else if (p->bt_entry == (int)KS_MR)
+	    p->bt_string = &ksmr_str[0];
+	else if (p->bt_entry == (int)KS_MD)
+	    p->bt_string = &ksmd_str[0];
+	++p;
     }
 }
 

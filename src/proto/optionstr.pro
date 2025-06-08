@@ -1,4 +1,6 @@
 /* optionstr.c */
+char *did_set_tabpanelopt(optset_T *args);
+int expand_set_tabpanelopt(optexpand_T *args, int *numMatches, char_u ***matches);
 void didset_string_options(void);
 void trigger_optionset_string(int opt_idx, int opt_flags, char_u *oldval, char_u *oldval_l, char_u *oldval_g, char_u *newval);
 void check_buf_options(buf_T *buf);
@@ -101,6 +103,7 @@ char *did_set_highlight(optset_T *args);
 int expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches);
 char *did_set_iconstring(optset_T *args);
 char *did_set_imactivatekey(optset_T *args);
+char *did_set_isexpand(optset_T *args);
 char *did_set_iskeyword(optset_T *args);
 char *did_set_isopt(optset_T *args);
 char *did_set_jumpoptions(optset_T *args);

@@ -276,6 +276,8 @@ typedef struct
 #if defined(FEAT_QUICKFIX)
     int		wo_pvw;
 # define w_p_pvw w_onebuf_opt.wo_pvw	// 'previewwindow'
+    long        wo_lhi;
+# define w_p_lhi w_onebuf_opt.wo_lhi    // 'lhistory'
 #endif
 #ifdef FEAT_RIGHTLEFT
     int		wo_rl;
@@ -1974,7 +1976,7 @@ struct ufunc_S
 #define FC_DEAD	    0x80	// function kept only for reference to dfunc
 #define FC_EXPORT   0x100	// "export def Func()"
 #define FC_NOARGS   0x200	// no a: variables in lambda
-#define FC_VIM9	    0x400	// defined in vim9 script file
+#define FC_VIM9	    0x400	// defined in Vim9 script file
 #define FC_CFUNC    0x800	// defined as Lua C func
 #define FC_COPY	    0x1000	// copy of another function by
 				// copy_lambda_to_global_func()
@@ -3070,7 +3072,7 @@ struct file_buffer
     int		b_locked;	// Buffer is being closed or referenced, don't
 				// let autocommands wipe it out.
     int		b_locked_split;	// Buffer is being closed, don't allow opening
-				// a new window with it.
+				// it in more windows.
 
     /*
      * b_ffname has the full path of the file (NULL for no name).
@@ -3300,6 +3302,7 @@ struct file_buffer
     char_u	*b_p_fo;	// 'formatoptions'
     char_u	*b_p_flp;	// 'formatlistpat'
     int		b_p_inf;	// 'infercase'
+    char_u	*b_p_ise;	// 'isexpand' local value
     char_u	*b_p_isk;	// 'iskeyword'
 #ifdef FEAT_FIND_ID
     char_u	*b_p_def;	// 'define' local value
@@ -3368,6 +3371,7 @@ struct file_buffer
      * local values for options which are normally global
      */
 #ifdef FEAT_QUICKFIX
+    char_u	*b_p_gefm;	// 'grepformat' local value
     char_u	*b_p_gp;	// 'grepprg' local value
     char_u	*b_p_mp;	// 'makeprg' local value
     char_u	*b_p_efm;	// 'errorformat' local value
@@ -3848,6 +3852,11 @@ typedef struct
     int	diff;
     int	eob;
     int	lastline;
+#if defined(FEAT_TABPANEL)
+    int	tpl_vert;
+#endif
+    int trunc;
+    int truncrl;
 } fill_chars_T;
 
 /*
@@ -4555,8 +4564,7 @@ typedef struct
     char_u	*pum_kind;		// extra kind text (may be truncated)
     char_u	*pum_extra;		// extra menu text (may be truncated)
     char_u	*pum_info;		// extra info
-    int		pum_score;		// fuzzy match score
-    int		pum_idx;		// index of item before sorting by score
+    int		pum_cpt_source_idx;	// index of completion source in 'cpt'
     int		pum_user_abbr_hlattr;	// highlight attribute for abbr
     int		pum_user_kind_hlattr;	// highlight attribute for kind
 } pumitem_T;
@@ -4574,9 +4582,9 @@ typedef struct
 } tagname_T;
 
 typedef struct {
-  UINT32_T total[2];
-  UINT32_T state[8];
-  char_u   buffer[64];
+    UINT32_T total[2];
+    UINT32_T state[8];
+    char_u   buffer[64];
 } context_sha256_T;
 
 /*

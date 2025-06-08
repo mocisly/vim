@@ -854,6 +854,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_SHELLCMDLINE	60
 #define EXPAND_FINDFUNC		61
 #define EXPAND_HIGHLIGHT_GROUP  62
+#define EXPAND_FILETYPECMD	63
 
 
 // Values for exmode_active (0 is no exmode)
@@ -917,6 +918,14 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define FINDFILE_FILE	0	// only files
 #define FINDFILE_DIR	1	// only directories
 #define FINDFILE_BOTH	2	// files and directories
+
+#if defined(FEAT_TABPANEL)
+# define COLUMNS_WITHOUT_TPL()		(Columns - tabpanel_width())
+# define TPL_LCOL(W)			tabpanel_leftcol(W)
+#else
+# define COLUMNS_WITHOUT_TPL()		Columns
+# define TPL_LCOL(W)			0
+#endif
 
 #define W_ENDCOL(wp)	((wp)->w_wincol + (wp)->w_width)
 #ifdef FEAT_MENU
@@ -1371,6 +1380,7 @@ enum auto_event
     EVENT_BUFWRITEPRE,		// before writing a buffer
     EVENT_CMDLINECHANGED,	// command line was modified
     EVENT_CMDLINEENTER,		// after entering the command line
+    EVENT_CMDLINELEAVEPRE,	// just before leaving the command line
     EVENT_CMDLINELEAVE,		// before leaving the command line
     EVENT_CMDUNDEFINED,		// command undefined
     EVENT_CMDWINENTER,		// after entering the cmdline window
@@ -1545,6 +1555,9 @@ typedef enum
     , HLF_ST	    // status lines of terminal windows
     , HLF_STNC	    // status lines of not-current terminal windows
     , HLF_MSG	    // message area
+    , HLF_TPL	    // tabpanel
+    , HLF_TPLS	    // tabpanel selected
+    , HLF_TPLF	    // tabpanel filler
     , HLF_COUNT	    // MUST be the last one
 } hlf_T;
 
@@ -1556,7 +1569,8 @@ typedef enum
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'k', '<','[', ']', '{', '}', 'x', 'X', \
 		  '*', '#', '_', '!', '.', 'o', 'q', \
-		  'z', 'Z', 'g'}
+		  'z', 'Z', 'g', \
+		  '%', '^', '&' }
 
 /*
  * Values for behaviour in spell_move_to

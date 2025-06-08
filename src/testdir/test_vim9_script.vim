@@ -4055,6 +4055,22 @@ def Test_error_in_autoload_script()
   &rtp = save_rtp
 enddef
 
+" Test for sourcing a Vim9 script with a function script variable and "noclear".
+" The type for the variable is dynamically allocated and should be freed.
+def Test_source_func_script_var()
+  var lines =<< trim END
+    vim9script noclear
+    var Fn: func(list<any>): number
+    Fn = function('min')
+    assert_equal(2, Fn([4, 2]))
+  END
+  new
+  setline(1, lines)
+  source
+  source
+  bw!
+enddef
+
 def Test_error_in_autoload_script_foldexpr()
   var save_rtp = &rtp
   mkdir('Xvim/autoload', 'pR')
@@ -4158,6 +4174,7 @@ func Test_no_redraw_when_restoring_cpo()
 endfunc
 
 def Run_test_no_redraw_when_restoring_cpo()
+  CheckScreendump
   var lines =<< trim END
     vim9script
     export def Func()
@@ -4189,6 +4206,7 @@ func Test_reject_declaration()
 endfunc
 
 def Run_test_reject_declaration()
+  CheckScreendump
   var buf = g:RunVimInTerminal('', {'rows': 6})
   term_sendkeys(buf, ":vim9cmd var x: number\<CR>")
   g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_1', {})
@@ -4815,11 +4833,13 @@ def Test_profile_with_lambda()
 enddef
 
 func Test_misplaced_type()
+  CheckScreendump
   CheckRunVimInTerminal
   call Run_Test_misplaced_type()
 endfunc
 
 def Run_Test_misplaced_type()
+  CheckScreendump
   writefile(['let g:somevar = "asdf"'], 'XTest_misplaced_type', 'D')
   var buf = g:RunVimInTerminal('-S XTest_misplaced_type', {'rows': 6})
   term_sendkeys(buf, ":vim9cmd echo islocked('somevar: string')\<CR>")

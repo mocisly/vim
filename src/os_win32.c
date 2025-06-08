@@ -175,12 +175,12 @@ static int conpty_working = 0;
 static int conpty_type = 0;
 static int conpty_stable = 0;
 static int conpty_fix_type = 0;
-static void vtp_flag_init();
+static void vtp_flag_init(void);
 
 #if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL)
 static int vtp_working = 0;
-static void vtp_init();
-static void vtp_exit();
+static void vtp_init(void);
+static void vtp_exit(void);
 static void vtp_sgr_bulk(int arg);
 static void vtp_sgr_bulks(int argc, int *argv);
 
@@ -971,7 +971,7 @@ PlatformId(void)
 
     ovi.dwOSVersionInfoSize = sizeof(ovi);
     if (!GetVersionEx(&ovi))
-        return;
+	return;
 
 #ifdef FEAT_EVAL
     vim_snprintf(windowsVersion, sizeof(windowsVersion), "%d.%d",
@@ -988,7 +988,7 @@ PlatformId(void)
 #ifdef HAVE_ACL
     // Enable privilege for getting or setting SACLs.
     if (!win32_enable_privilege(SE_SECURITY_NAME))
-        return;
+	return;
 #endif
 }
 #ifdef _MSC_VER
@@ -1962,14 +1962,19 @@ encode_mouse_event(dict_T *args, INPUT_RECORD *ir)
     static int
 write_input_record_buffer(INPUT_RECORD* irEvents, int nLength)
 {
-    int nCount = 0;
+    int				nCount = 0;
+    input_record_buffer_node_T	*event_node;
+
     while (nCount < nLength)
     {
-	input_record_buffer.length++;
-	input_record_buffer_node_T *event_node =
-				    malloc(sizeof(input_record_buffer_node_T));
+	event_node = alloc(sizeof(input_record_buffer_node_T));
+	if (event_node == NULL)
+	    return -1;
+
 	event_node->ir = irEvents[nCount++];
 	event_node->next = NULL;
+
+	input_record_buffer.length++;
 	if (input_record_buffer.tail == NULL)
 	{
 	    input_record_buffer.head = event_node;
@@ -2065,7 +2070,13 @@ test_mswin_event(char_u *event, dict_T *args)
     // events.  But, this doesn't work well in the CI test environment.  So
     // implementing an input_record_buffer instead.
     if (input_encoded)
-	lpEventsWritten = write_input_record_buffer(&ir, 1);
+    {
+	if ((lpEventsWritten = write_input_record_buffer(&ir, 1)) < 0)
+	{
+	    semsg(_(e_out_of_memory), "event");
+	    return FALSE;
+	}
+    }
 
     // Set flags to execute the event, ie. like feedkeys mode X.
     if (execute)
@@ -3017,6 +3028,8 @@ mch_init_g(void)
 	STRCPY(gettail(vimrun_location), "vimrun.exe");
 	if (mch_getperm(vimrun_location) >= 0)
 	{
+	    char  *p;
+
 	    if (*skiptowhite(vimrun_location) != NUL)
 	    {
 		// Enclose path with white space in double quotes.
@@ -3028,8 +3041,12 @@ mch_init_g(void)
 	    else
 		STRCPY(gettail(vimrun_location), "vimrun ");
 
-	    vimrun_path = (char *)vim_strsave(vimrun_location);
-	    s_dont_use_vimrun = FALSE;
+	    p = (char *)vim_strsave(vimrun_location);
+	    if (p != NULL)
+	    {
+		vimrun_path = p;
+		s_dont_use_vimrun = FALSE;
+	    }
 	}
 	else if (executable_exists("vimrun.exe", NULL, TRUE, FALSE))
 	    s_dont_use_vimrun = FALSE;
@@ -3810,10 +3827,13 @@ mch_dirname(
     if (GetLongPathNameW(wbuf, wcbuf, _MAX_PATH) != 0)
     {
 	p = utf16_to_enc(wcbuf, NULL);
-	if (STRLEN(p) >= (size_t)len)
+	if (p != NULL)
 	{
-	    // long path name is too long, fall back to short one
-	    VIM_CLEAR(p);
+	    if (STRLEN(p) >= (size_t)len)
+	    {
+		// long path name is too long, fall back to short one
+		VIM_CLEAR(p);
+	    }
 	}
     }
     if (p == NULL)
@@ -5086,8 +5106,8 @@ mch_system_piped(char *cmd, int options)
     // About "Inherit handles" being TRUE: this command can be litigious,
     // handle inheritance was deactivated for pending temp file, but, if we
     // deactivate it, the pipes don't work for some reason.
-     vim_create_process(p, TRUE, CREATE_DEFAULT_ERROR_MODE,
-	     &si, &pi, NULL, NULL);
+    vim_create_process(p, TRUE, CREATE_DEFAULT_ERROR_MODE,
+						&si, &pi, NULL, NULL);
 
     if (p != cmd)
 	vim_free(p);
@@ -6346,7 +6366,7 @@ termcap_mode_end(void)
 
     // Switch back to main screen buffer.
     if (exiting && use_alternate_screen_buffer)
-        vtp_printf("\033[?1049l");
+	vtp_printf("\033[?1049l");
 
     if (!USE_WT && (p_rs || exiting))
     {
@@ -7846,7 +7866,10 @@ copy_substream(HANDLE sh, void *context, WCHAR *to, WCHAR *substream, long len)
     HANDLE  hTo;
     WCHAR   *to_name;
 
-    to_name = malloc((wcslen(to) + wcslen(substream) + 1) * sizeof(WCHAR));
+    to_name = alloc((wcslen(to) + wcslen(substream) + 1) * sizeof(WCHAR));
+    if (to_name == NULL)
+	return;
+
     wcscpy(to_name, to);
     wcscat(to_name, substream);
 
@@ -8191,7 +8214,7 @@ get_cmd_argsW(char ***argvp)
     ArglistW = CommandLineToArgvW(GetCommandLineW(), &nArgsW);
     if (ArglistW != NULL)
     {
-	argv = malloc((nArgsW + 1) * sizeof(char *));
+	argv = alloc((nArgsW + 1) * sizeof(char *));
 	if (argv != NULL)
 	{
 	    argc = nArgsW;
@@ -8223,7 +8246,7 @@ get_cmd_argsW(char ***argvp)
     {
 	if (used_file_indexes != NULL)
 	    free(used_file_indexes);
-	used_file_indexes = malloc(argc * sizeof(int));
+	used_file_indexes = alloc(argc * sizeof(int));
     }
 
     if (argvp != NULL)
@@ -8991,9 +9014,7 @@ static sig_atomic_t *timeout_flag = &timeout_flags[0];
     static void CALLBACK
 set_flag(void *param, BOOLEAN unused2 UNUSED)
 {
-    int *timeout_flag = (int *)param;
-
-    *timeout_flag = TRUE;
+    *(sig_atomic_t *)param = TRUE;
 }
 
 /*

@@ -2092,6 +2092,8 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_cindent},
     {"clearmatches",	0, 1, FEARG_1,	    arg1_number,
 			ret_void,	    f_clearmatches},
+    {"cmdcomplete_info",0, 0, 0,	    NULL,
+			ret_dict_any,	    f_cmdcomplete_info},
     {"col",		1, 2, FEARG_1,	    arg2_string_or_list_number,
 			ret_number,	    f_col},
     {"complete",	2, 2, FEARG_2,	    arg2_number_list,
@@ -2102,6 +2104,8 @@ static funcentry_T global_functions[] =
 			ret_number_bool,    f_complete_check},
     {"complete_info",	0, 1, FEARG_1,	    arg1_list_string,
 			ret_dict_any,	    f_complete_info},
+    {"complete_match",	0, 2, 0,	    NULL,
+			ret_list_any,	    f_complete_match},
     {"confirm",		1, 4, FEARG_1,	    arg4_string_string_number_string,
 			ret_number,	    f_confirm},
     {"copy",		1, 1, FEARG_1,	    NULL,
@@ -5578,34 +5582,34 @@ f_get(typval_T *argvars, typval_T *rettv)
 f_getcellpixels(typval_T *argvars UNUSED, typval_T *rettv)
 {
     if (rettv_list_alloc(rettv) == FAIL)
-        return;
+	return;
 
 #if defined(FEAT_GUI)
     if (gui.in_use)
     {
-        // success pixel size and no gui.
-        list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_width);
-        list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_height);
+	// success pixel size and no gui.
+	list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_width);
+	list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_height);
     }
     else
 #endif
     {
-        struct cellsize cs;
+	struct cellsize cs;
 #if defined(UNIX)
-        mch_calc_cell_size(&cs);
+	mch_calc_cell_size(&cs);
 #else
-        // Non-Unix CUIs are not supported, so set this to -1x-1.
-        cs.cs_xpixel = -1;
-        cs.cs_ypixel = -1;
+	// Non-Unix CUIs are not supported, so set this to -1x-1.
+	cs.cs_xpixel = -1;
+	cs.cs_ypixel = -1;
 #endif
 
-        // failed get pixel size.
-        if (cs.cs_xpixel == -1)
-            return;
+	// failed get pixel size.
+	if (cs.cs_xpixel == -1)
+	    return;
 
-        // success pixel size and no gui.
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
+	// success pixel size and no gui.
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
     }
 
 }
@@ -7411,6 +7415,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
+	{"tabpanel",
+#if defined(FEAT_TABPANEL)
+		1,
+#else
+		0,
+#endif
+	},
 	{"tag_binary", 1},	// graduated feature
 	{"tcl",
 #if defined(FEAT_TCL) && !defined(DYNAMIC_TCL)
@@ -9164,7 +9175,7 @@ get_matches_in_str(
 	if (d == NULL)
 	    return FAIL;
 	if (list_append_dict(mlist, d) == FAIL)
-	    return FAIL;;
+	    return FAIL;
 
 	if (dict_add_number(d, matchbuf ? "lnum" : "idx", idx) == FAIL)
 	    return FAIL;
