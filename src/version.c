@@ -644,6 +644,16 @@ static char *(features[]) =
 	"-vtp",
 # endif
 #endif
+#ifdef FEAT_WAYLAND
+	"+wayland",
+#else
+	"-wayland",
+#endif
+#ifdef FEAT_WAYLAND_CLIPBOARD
+	"+wayland_clipboard",
+#else
+	"-wayland_clipboard",
+#endif
 	"+wildignore",
 	"+wildmenu",
 	"+windows",
@@ -709,6 +719,150 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1508,
+/**/
+    1507,
+/**/
+    1506,
+/**/
+    1505,
+/**/
+    1504,
+/**/
+    1503,
+/**/
+    1502,
+/**/
+    1501,
+/**/
+    1500,
+/**/
+    1499,
+/**/
+    1498,
+/**/
+    1497,
+/**/
+    1496,
+/**/
+    1495,
+/**/
+    1494,
+/**/
+    1493,
+/**/
+    1492,
+/**/
+    1491,
+/**/
+    1490,
+/**/
+    1489,
+/**/
+    1488,
+/**/
+    1487,
+/**/
+    1486,
+/**/
+    1485,
+/**/
+    1484,
+/**/
+    1483,
+/**/
+    1482,
+/**/
+    1481,
+/**/
+    1480,
+/**/
+    1479,
+/**/
+    1478,
+/**/
+    1477,
+/**/
+    1476,
+/**/
+    1475,
+/**/
+    1474,
+/**/
+    1473,
+/**/
+    1472,
+/**/
+    1471,
+/**/
+    1470,
+/**/
+    1469,
+/**/
+    1468,
+/**/
+    1467,
+/**/
+    1466,
+/**/
+    1465,
+/**/
+    1464,
+/**/
+    1463,
+/**/
+    1462,
+/**/
+    1461,
+/**/
+    1460,
+/**/
+    1459,
+/**/
+    1458,
+/**/
+    1457,
+/**/
+    1456,
+/**/
+    1455,
+/**/
+    1454,
+/**/
+    1453,
+/**/
+    1452,
+/**/
+    1451,
+/**/
+    1450,
+/**/
+    1449,
+/**/
+    1448,
+/**/
+    1447,
+/**/
+    1446,
+/**/
+    1445,
+/**/
+    1444,
+/**/
+    1443,
+/**/
+    1442,
+/**/
+    1441,
+/**/
+    1440,
+/**/
+    1439,
+/**/
+    1438,
+/**/
+    1437,
 /**/
     1436,
 /**/
@@ -3792,13 +3946,21 @@ list_version(void)
 # ifdef FEAT_GUI_MSWIN
 #  ifdef VIMDLL
 #   ifdef _WIN64
-    msg_puts(_("\nMS-Windows 64-bit GUI/console version"));
+#    if defined(_M_ARM64) || defined(_M_ARM64EC)
+     msg_puts(_("\nMS-Windows ARM64 GUI/console version"));
+#    else
+     msg_puts(_("\nMS-Windows 64-bit GUI/console version"));
+#    endif
 #   else
     msg_puts(_("\nMS-Windows 32-bit GUI/console version"));
 #   endif
 #  else
 #   ifdef _WIN64
-    msg_puts(_("\nMS-Windows 64-bit GUI version"));
+#    if defined(_M_ARM64) || defined(_M_ARM64EC)
+     msg_puts(_("\nMS-Windows ARM64 GUI version"));
+#    else
+     msg_puts(_("\nMS-Windows 64-bit GUI version"));
+#    endif
 #   else
     msg_puts(_("\nMS-Windows 32-bit GUI version"));
 #   endif
@@ -3808,7 +3970,11 @@ list_version(void)
 #  endif
 # else
 #  ifdef _WIN64
+#   if defined(_M_ARM64) || defined(_M_ARM64EC)
+    msg_puts(_("\nMS-Windows ARM64 console version"));
+#   else
     msg_puts(_("\nMS-Windows 64-bit console version"));
+#   endif
 #  else
     msg_puts(_("\nMS-Windows 32-bit console version"));
 #  endif

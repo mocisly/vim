@@ -231,10 +231,11 @@ typedef enum {
 #define CPO_CHDIR	'.'	// don't chdir if buffer is modified
 #define CPO_SCOLON	';'	// using "," and ";" will skip over char if
 				// cursor would not move
+#define CPO_NOSYMLINKS	'~'	// don't resolve symlinks when changing directory
 // default values for Vim, Vi and POSIX
 #define CPO_VIM		"aABceFsz"
 #define CPO_VI		"aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>;"
-#define CPO_ALL		"aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;"
+#define CPO_ALL		"aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;~"
 
 // characters for p_ww option:
 #define WW_ALL		"bshl<>[]~"
@@ -504,6 +505,7 @@ EXTERN char_u	*p_cedit;	// 'cedit'
 EXTERN long	p_cwh;		// 'cmdwinheight'
 #ifdef FEAT_CLIPBOARD
 EXTERN char_u	*p_cb;		// 'clipboard'
+EXTERN char_u	*p_cpm;		// 'clipmethod'
 #endif
 EXTERN long	p_ch;		// 'cmdheight'
 #ifdef FEAT_FOLDING
@@ -1132,6 +1134,13 @@ EXTERN long	p_wh;		// 'winheight'
 EXTERN long	p_wmh;		// 'winminheight'
 EXTERN long	p_wmw;		// 'winminwidth'
 EXTERN long	p_wiw;		// 'winwidth'
+#ifdef FEAT_WAYLAND
+EXTERN char_u	*p_wse;		// 'wlseat'
+# ifdef FEAT_WAYLAND_CLIPBOARD
+EXTERN int	p_wst;		// 'wlsteal'
+# endif
+EXTERN long     p_wtm;		// 'wltimeoutlen'
+#endif
 #if defined(MSWIN) && defined(FEAT_TERMINAL)
 EXTERN char_u	*p_winptydll;	// 'winptydll'
 #endif

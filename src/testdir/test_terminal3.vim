@@ -1018,4 +1018,26 @@ func Test_autocmd_buffilepost_with_hidden_term()
   bw! XTestFile
 endfunc
 
+func Test_terminal_visual_empty_listchars()
+  CheckScreendump
+  CheckRunVimInTerminal
+  CheckUnix
+
+  let lines = [
+  \ 'set listchars=',
+  \ ':term sh -c "printf ''hello\\n\\nhello''"'
+  \ ]
+  call writefile(lines, 'XtermStart1', 'D')
+  let buf = RunVimInTerminal('-S XtermStart1', #{rows: 15})
+  call term_wait(buf)
+  call term_sendkeys(buf, "V2k")
+  call VerifyScreenDump(buf, 'Test_terminal_empty_listchars', {})
+  call term_sendkeys(buf, "\<esc>")
+  call term_sendkeys(buf, ":set nu\<cr>")
+  call term_sendkeys(buf, "ggV2j")
+  call VerifyScreenDump(buf, 'Test_terminal_empty_listchars2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

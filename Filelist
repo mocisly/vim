@@ -241,6 +241,7 @@ SRC_ALL =	\
 		src/testdir/ru_RU/LC_MESSAGES/Makefile \
 		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.po \
 		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.mo \
+		src/testdir/window_manager.vim \
 		src/proto.h \
 		src/protodef.h \
 		src/proto/alloc.pro \
@@ -490,6 +491,12 @@ SRC_UNIX =	\
 		src/gui_xmebwp.h \
 		src/gui_x11.c \
 		src/gui_x11_pm.h \
+		src/auto/wayland/README.txt \
+		src/auto/wayland/Makefile \
+		src/auto/wayland/protocols/ext-data-control-v1.xml \
+		src/auto/wayland/protocols/wlr-data-control-unstable-v1.xml \
+		src/auto/wayland/protocols/xdg-shell.xml \
+		src/auto/wayland/protocols/primary-selection-unstable-v1.xml \
 		src/if_xcmdsrv.c \
 		src/link.sh \
 		src/installman.sh \
@@ -508,6 +515,7 @@ SRC_UNIX =	\
 		src/proto/gui_motif.pro \
 		src/proto/gui_xmdlg.pro \
 		src/proto/gui_x11.pro \
+		src/proto/wayland.pro \
 		src/proto/if_xcmdsrv.pro \
 		src/proto/os_unix.pro \
 		src/proto/pty.pro \
@@ -519,7 +527,9 @@ SRC_UNIX =	\
 		src/vim_mask.xbm \
 		src/vimtutor \
 		src/gvimtutor \
+		src/wayland.c \
 		src/which.sh \
+		src/gen-wayland-protocols.sh \
 		src/xxd/Makefile \
 
 # Source files for both MS Windows and Unix-like.
@@ -780,7 +790,6 @@ RT_ALL =	\
 		runtime/tools/[a-z]*[a-z0-9] \
 		runtime/tutor/README.txt \
 		runtime/tutor/tutor1 \
-		runtime/tutor/tutor1.utf-8 \
 		runtime/tutor/en/vim-01-beginner.tutor \
 		runtime/tutor/en/vim-01-beginner.tutor.json \
 		runtime/tutor/en/vim-02-beginner.tutor \
@@ -789,7 +798,6 @@ RT_ALL =	\
 		runtime/tutor/tutor.tutor.json \
 		runtime/tutor/tutor.vim \
 		runtime/tutor/tutor2 \
-		runtime/tutor/tutor2.utf-8 \
 		runtime/vimrc_example.vim \
 		runtime/pack/dist/opt/cfilter/plugin/cfilter.vim \
 		runtime/pack/dist/opt/comment/plugin/comment.vim \
@@ -831,7 +839,6 @@ RT_ALL =	\
 		runtime/pack/dist/opt/netrw/autoload/netrw/fs.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw/os.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw/msg.vim \
-		runtime/pack/dist/opt/netrw/autoload/netrwSettings.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw_gitignore.vim \
 		runtime/pack/dist/opt/netrw/doc/netrw.txt \
 		runtime/pack/dist/opt/netrw/plugin/netrwPlugin.vim \
@@ -934,7 +941,6 @@ RT_DOS =	\
 		README_dos.txt \
 		runtime/doc/Make_mvc.mak \
 		runtime/indent/Make_mvc.mak \
-		runtime/tutor/Make_mvc.mak \
 		runtime/lang/Make_mvc.mak \
 		vimtutor.bat \
 
@@ -1088,8 +1094,6 @@ LANG_GEN = \
 		runtime/keymap/README.txt \
 		runtime/keymap/*.vim \
 		runtime/tutor/README.*.txt \
-		runtime/tutor/Makefile \
-		runtime/tutor/Make_all.mak \
 		runtime/tutor/it/vim-01-beginner.tutor \
 		runtime/tutor/it/vim-01-beginner.tutor.json \
 		runtime/tutor/ru/vim-01-beginner.tutor \
@@ -1101,19 +1105,9 @@ LANG_GEN = \
 		runtime/tutor/sr/vim-02-beginner.tutor \
 		runtime/tutor/sr/vim-02-beginner.tutor.json \
 		runtime/tutor/tutor1.?? \
-		runtime/tutor/tutor1.??.utf-8 \
-		runtime/tutor/tutor1.??.euc \
-		runtime/tutor/tutor1.??.sjis \
-		runtime/tutor/tutor1.??.iso9 \
-		runtime/tutor/tutor1.??.big5 \
-		runtime/tutor/tutor1.??.cp1250 \
-		runtime/tutor/tutor1.??.cp1251 \
-		runtime/tutor/tutor1.??.cp737 \
-		runtime/tutor/tutor1.??_??.utf-8 \
+		runtime/tutor/tutor1.??_?? \
 		runtime/tutor/tutor1.bar \
-		runtime/tutor/tutor1.bar.utf-8 \
 		runtime/tutor/tutor2.?? \
-		runtime/tutor/tutor2.??.utf-8 \
 		runtime/spell/README.txt \
 		runtime/spell/??/*.diff \
 		runtime/spell/??/main.aap \

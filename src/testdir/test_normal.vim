@@ -2604,8 +2604,14 @@ func Test_normal33_g_cmd2()
   exe "norm! G0\<c-v>4k4ly"
   exe "norm! gvood"
   call assert_equal(['', 'abfgh', 'abfgh', 'abfgh', 'fgh', 'fgh', 'fgh', 'fgh', 'fgh'], getline(1,'$'))
-  " gv cannot be used in operator pending mode
-  call assert_beeps('normal! cgv')
+  " gv works in operator pending mode
+  call assert_nobeep('normal! cgvxyza')
+  call assert_equal(['', 'abfgh', 'abfgh', 'abfgh', 'xyza', 'xyza', 'xyza', 'xyza', 'xyza'], getline(1,'$'))
+  exe "norm! ^\<c-v>Gydgv..cgvbc"
+  call assert_equal(['', 'abfgh', 'abfgh', 'abfgh', 'bc', 'bc', 'bc', 'bc', 'bc'], getline(1,'$'))
+  exe "norm! v^GragggUgv"
+  call assert_equal(['', 'abfgh', 'abfgh', 'abfgh', 'bA', 'AA', 'AA', 'AA', 'Ac'], getline(1,'$'))
+
   " gv should beep without a previously selected visual area
   new
   call assert_beeps('normal! gv')
@@ -4369,6 +4375,32 @@ func Test_scroll_longline_winwidth()
   exe "normal! \<C-B>"
   call assert_equal(1, line('w0'))
   bwipe!
+endfunc
+
+func Test_pos_percentage_in_turkish_locale()
+  CheckRunVimInTerminal
+  CheckNotMac
+  defer execute(':lang C')
+
+  try
+    let dir = expand('$VIMRUNTIME/lang/tr/')
+    let target = expand('$VIMRUNTIME/lang/tr/LC_MESSAGES/')
+    let tr = '../po/tr.mo'
+    call mkdir(dir, 'R')
+    call mkdir(target, '')
+    call filecopy(tr, target .. 'vim.mo')
+    lang tr_TR.UTF-8
+    let buf = RunVimInTerminal('', {'rows': 5})
+    call term_sendkeys(buf, ":lang tr_TR.UTF-8\<cr>")
+    call term_sendkeys(buf, ":put =range(1,40)\<cr>")
+    call term_sendkeys(buf, ":5\<cr>")
+    call WaitForAssert({-> assert_match('%8$', term_getline(buf, 5))})
+
+    call StopVimInTerminal(buf)
+  catch /E197:/
+    " can't use Turkish locale
+    throw 'Skipped: Turkish locale not available'
+  endtry
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

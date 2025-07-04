@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 May 14
+" Last Change:	2025 Jul 02
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " If there already is an option window, jump to that one.
@@ -684,6 +684,8 @@ if has("gui")
     endif
     call <SID>AddOption("guiheadroom", gettext("room (in pixels) left above/below the window"))
     call append("$", " \tset ghr=" . &ghr)
+  endif
+  if has("gui_gtk") || has("gui_win32")
     call <SID>AddOption("guiligatures", gettext("list of ASCII characters that can be combined into complex shapes"))
     call <SID>OptionG("gli", &gli)
   endif
@@ -806,6 +808,20 @@ call <SID>OptionG("slm", &slm)
 if has("clipboard")
   call <SID>AddOption("clipboard", gettext("\"unnamed\" to use the * register like unnamed register\n\"autoselect\" to always put selected text on the clipboard"))
   call <SID>OptionG("cb", &cb)
+  call <SID>AddOption("clipmethod", gettext("Ordered list of possible methods for accessing the clipboard"))
+  call <SID>OptionG("cpm", &cpm)
+endif
+if has("wayland_clipboard")
+  call <SID>AddOption("wltimeoutlen", gettext("Timeout to use when polling for data to read or write in wayland"))
+  call <SID>OptionG("wtm", &wtm)
+endif
+if has('wayland')
+  call <SID>AddOption("wlseat", gettext("Wayland seat to use"))
+  call <SID>OptionG("wse", &wse)
+endif
+if has("wayland_clipboard")
+  call <SID>AddOption("wlsteal", gettext("Enable wayland focus stealing functionality in order to access the clipboard"))
+  call <SID>BinOptionG("wst", &wst)
 endif
 call <SID>AddOption("keymodel", gettext("\"startsel\" and/or \"stopsel\"; what special keys can do"))
 call <SID>OptionG("km", &km)
@@ -1455,7 +1471,7 @@ if exists("&mzschemedll")
   call <SID>OptionG("mzschemegcdll", &mzschemegcdll)
 endif
 if has("tabpanel")
-  call <SID>AddOption("showtabpanel", gettext("0, 1 or 2; when to use a tab pages in tabpanel"))
+  call <SID>AddOption("showtabpanel", gettext("0, 1 or 2; when to use the tabpanel"))
   call <SID>AddOption("tabpanel", gettext("custom tab pages in tabpanel"))
   call <SID>AddOption("tabpanelopt", gettext("options for using tabpanel"))
 endif
