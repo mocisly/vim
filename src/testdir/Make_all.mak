@@ -48,6 +48,7 @@ TEST_VIM9 = \
 	test_vim9_expr \
 	test_vim9_fails \
 	test_vim9_func \
+	test_vim9_generics \
 	test_vim9_import \
 	test_vim9_python3 \
 	test_vim9_script \
@@ -63,6 +64,7 @@ TEST_VIM9_RES = \
 	test_vim9_expr.res \
 	test_vim9_fails.res \
 	test_vim9_func.res \
+	test_vim9_generics.res \
 	test_vim9_import.res \
 	test_vim9_python3.res \
 	test_vim9_script.res \
@@ -242,12 +244,15 @@ NEW_TESTS = \
 	test_perl \
 	test_plugin_comment \
 	test_plugin_glvs \
+	test_plugin_helptoc \
 	test_plugin_man \
 	test_plugin_matchparen \
+	test_plugin_tar \
 	test_plugin_termdebug \
 	test_plugin_tohtml \
 	test_plugin_tutor \
 	test_plugin_zip \
+	test_plugin_colorresp \
 	test_plus_arg_edit \
 	test_popup \
 	test_popupwin \
@@ -513,12 +518,15 @@ NEW_TESTS_RES = \
 	test_perl.res \
 	test_plugin_comment.res \
 	test_plugin_glvs.res \
+	test_plugin_helptoc.res \
 	test_plugin_man.res \
 	test_plugin_matchparen.res \
+	test_plugin_tar.res \
 	test_plugin_termdebug.res \
 	test_plugin_tohtml.res \
 	test_plugin_tutor.res \
 	test_plugin_zip.res \
+	test_plugin_colorresp.res \
 	test_plus_arg_edit.res \
 	test_popup.res \
 	test_popupwin.res \

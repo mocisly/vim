@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:		The Vim Project <https://github.com/vim/vim>
-" Last Change:		2025 Jun 18
+" Last Change:		2025 Aug 26
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -219,8 +219,8 @@ au BufNewFile,BufRead *.au3			setf autoit
 " Autohotkey
 au BufNewFile,BufRead *.ahk			setf autohotkey
 
-" Autotest .at files are actually m4
-au BufNewFile,BufRead *.at			setf m4
+" Autotest .at files are actually Autoconf M4
+au BufNewFile,BufRead *.at			setf config
 
 " Avenue
 au BufNewFile,BufRead *.ave			setf ave
@@ -319,7 +319,7 @@ au BufNewFile,BufRead *.brs			setf brightscript
 au BufNewFile,BufRead *.bsd,*.bsdl			setf bsdl
 
 " Bazel (https://bazel.build) and Buck2 (https://buck2.build/)
-autocmd BufRead,BufNewFile *.bzl,*.bazel,WORKSPACE,WORKSPACE.bzlmod	setf bzl
+autocmd BufRead,BufNewFile *.bzl,*.bxl,*.bazel,WORKSPACE,WORKSPACE.bzlmod	setf bzl
 if has("fname_case")
   " There is another check for BUILD and BUCK further below.
   autocmd BufRead,BufNewFile *.BUILD,BUILD,BUCK		setf bzl
@@ -690,11 +690,16 @@ au BufNewFile,BufRead *.dfy			setf dafny
 " Dart
 au BufRead,BufNewfile *.dart,*.drt		setf dart
 
+" Debian autopkgtest
+au BufNewFile,BufRead */debian/tests/control	setf autopkgtest
+
 " Debian Control
 au BufNewFile,BufRead */{debian,DEBIAN}/control		setf debcontrol
 au BufNewFile,BufRead control
 	\  if getline(1) =~ '^Source:\|^Package:'
 	\|   setf debcontrol
+	\| elseif getline(1) =~ '^Tests:\|^Test-Command:'
+	\|   setf autopkgtest
 	\| endif
 
 " Debian Copyright
@@ -883,6 +888,9 @@ autocmd BufRead,BufNewFile *.fnl,{,.}fennelrc	setf fennel
 
 " Fetchmail RC file
 au BufNewFile,BufRead .fetchmailrc		setf fetchmail
+
+" FGA
+au BufNewFile,BufRead *.fga			setf fga
 
 " FIRRTL - Flexible Internal Representation for RTL
 au BufNewFile,BufRead *.fir			setf firrtl
@@ -1149,9 +1157,6 @@ au BufNewFile,BufRead *.http			setf http
 " HTML with Ruby - eRuby
 au BufNewFile,BufRead *.erb,*.rhtml		setf eruby
 
-" HTML with M4
-au BufNewFile,BufRead *.html.m4			setf htmlm4
-
 " Some template.  Used to be HTML Cheetah.
 au BufNewFile,BufRead *.tmpl			setf template
 
@@ -1312,7 +1317,7 @@ au BufNewFile,BufRead *.ipynb,*.jupyterlab-settings	setf json
 au BufNewFile,BufRead *.sublime-project,*.sublime-settings,*.sublime-workspace	setf json
 
 " Other files that look like json
-au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc,.lintstagedrc,flake.lock,deno.lock,.swcrc	setf json
+au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc,.lintstagedrc,flake.lock,deno.lock,.swcrc,composer.lock,symfony.lock	setf json
 
 " JSONC (JSON with comments)
 au BufNewFile,BufRead *.jsonc,.babelrc,.eslintrc,.jsfmtrc,bun.lock	setf jsonc
@@ -1511,8 +1516,8 @@ au BufNewFile,BufRead *.lsl			call dist#ft#FTlsl()
 au BufNewFile,BufRead *.lss			setf lss
 
 " M4
-au BufNewFile,BufRead *.m4
-	\ if expand("<afile>") !~? 'html.m4$\|fvwm2rc' | setf m4 | endif
+au BufNewFile,BufRead *.m4                      call dist#ft#FTm4()
+
 au BufNewFile,BufRead .m4_history		setf m4
 
 " MaGic Point
@@ -1937,6 +1942,7 @@ au BufNewFile,BufRead .pinerc,pinerc,.pinercex,pinercex		setf pine
 au BufNewFile,BufRead *.pip			setf requirements
 au BufNewFile,BufRead requirements.txt		setf requirements
 au BufNewFile,BufRead *-requirements.txt	setf requirements
+au BufNewFile,BufRead requirements-*.txt	setf requirements
 au BufNewFile,BufRead constraints.txt		setf requirements
 au BufNewFile,BufRead requirements.in		setf requirements
 au BufNewFile,BufRead requirements/*.txt	setf requirements
@@ -1948,6 +1954,9 @@ au BufNewFile,BufRead Pipfile.lock		setf json
 
 " Pixi lock
 au BufNewFile,BufRead pixi.lock			setf yaml
+
+" Pkl
+au BufNewFile,BufRead *.pkl			setf pkl
 
 " PL/1, PL/I
 au BufNewFile,BufRead *.pli,*.pl1		setf pli
@@ -2421,6 +2430,9 @@ au BufNewFile,BufRead *.il,*.ils,*.cdf		setf skill
 " Cadence
 au BufNewFile,BufRead *.cdc			setf cdc
 
+" Cangjie
+au BufNewFile,BufRead *.cj			setf cangjie
+
 " SLRN
 au BufNewFile,BufRead .slrnrc			setf slrnrc
 au BufNewFile,BufRead *.score			setf slrnsc
@@ -2870,6 +2882,9 @@ au BufNewFile,BufRead *.vroom			setf vroom
 
 " Vue.js Single File Component
 au BufNewFile,BufRead *.vue			setf vue
+
+" Waybar config
+au BufNewFile,BufRead */waybar/config		setf jsonc
 
 " WebAssembly
 au BufNewFile,BufRead *.wat,*.wast		setf wat

@@ -1,10 +1,7 @@
 " Tests for autocommands
 
-source shared.vim
-source check.vim
-source term_util.vim
-source screendump.vim
-import './vim9.vim' as v9
+source util/screendump.vim
+import './util/vim9.vim' as v9
 
 func s:cleanup_buffers() abort
   for bnr in range(1, bufnr('$'))
@@ -2184,6 +2181,17 @@ func Test_Cmdline()
         \ '0abc1abc2',
         \ '0abc1abc2abc',
         \ '0abc1abc2abc3',
+        \ ], g:log)
+
+  " <Del> should trigger CmdlineChanged
+  let g:log = []
+  call feedkeys(":foo\<Left>\<Left>\<Del>\<Del>\<Esc>", 'xt')
+  call assert_equal([
+        \ 'f',
+        \ 'fo',
+        \ 'foo',
+        \ 'fo',
+        \ 'f',
         \ ], g:log)
 
   unlet g:log
@@ -5477,6 +5485,31 @@ func Test_eventignore_subtract()
   unlet! s:triggered
   call CleanUpTestAuGroup()
   %bw!
+endfunc
+
+func Test_VimResized_and_window_width_not_equalized()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    let g:vim_resized = 0
+    autocmd VimResized * let g:vim_resized = 1
+    10vsplit
+  END
+  call writefile(lines, 'XTest_VimResize', 'D')
+  let buf = RunVimInTerminal('-S XTest_VimResize', {'rows': 10, 'cols': 30})
+
+  " redraw now to avoid a redraw after the :echo command
+  call term_sendkeys(buf, ":redraw!\<CR>")
+  call TermWait(buf)
+
+  call term_sendkeys(buf, ":set columns=40\<CR>")
+  call term_sendkeys(buf, ":echo 'VimResized:' g:vim_resized\<CR>")
+  call WaitForAssert({-> assert_match('^VimResized: 1$', term_getline(buf, 10))}, 1000)
+  call term_sendkeys(buf, ":let window_width = getwininfo(win_getid())[0].width\<CR>")
+  call term_sendkeys(buf, ":echo 'window_width:' window_width\<CR>")
+  call WaitForAssert({-> assert_match('^window_width: 10$', term_getline(buf, 10))}, 1000)
+
+  call StopVimInTerminal(buf)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

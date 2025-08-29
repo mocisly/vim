@@ -113,6 +113,7 @@ SRC += \
 	findfile.c \
 	float.c \
 	fold.c \
+	fuzzy.c \
 	getchar.c \
 	gc.c \
 	hardcopy.c \
@@ -183,6 +184,7 @@ SRC += \
 	vim9compile.c \
 	vim9execute.c \
 	vim9expr.c \
+	vim9generics.c \
 	vim9instr.c \
 	vim9script.c \
 	vim9type.c \

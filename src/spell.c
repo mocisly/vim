@@ -45,8 +45,8 @@
  *
  * Thanks to Olaf Seibert for providing an example implementation of this tree
  * and the compression mechanism.
- * LZ trie ideas:
- *	http://www.irb.hr/hr/home/ristov/papers/RistovLZtrieRevision1.pdf
+ * LZ trie ideas, original link (now dead)
+ *	irb.hr/hr/home/ristov/papers/RistovLZtrieRevision1.pdf
  * More papers: http://www-igm.univ-mlv.fr/~laporte/publi_en.html
  *
  * Matching involves checking the caps type: Onecap ALLCAP KeepCap.
@@ -60,9 +60,7 @@
 
 #if defined(FEAT_SPELL) || defined(PROTO)
 
-#ifndef UNIX		// it's in os_unix.h for Unix
-# include <time.h>	// for time_t
-#endif
+#include <time.h>
 
 #define REGION_ALL 0xff		// word valid in all regions
 

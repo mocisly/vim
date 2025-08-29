@@ -1,16 +1,12 @@
 " Tests for clipmethod
 
-source check.vim
-source shared.vim
-source window_manager.vim
-
-CheckFeature clipboard_working
-CheckFeature xterm_clipboard
-CheckFeature wayland_clipboard
-CheckUnix
+if has('unix')
+  source util/window_manager.vim
+endif
 
 " Test if no available clipmethod sets v:clipmethod to none and deinits clipboard
 func Test_no_clipmethod_sets_v_clipmethod_none()
+  CheckFeature clipboard_working
   CheckNotGui
 
   set clipmethod=
@@ -21,6 +17,9 @@ endfunc
 " Test if method chosen is in line with clipmethod order
 func Test_clipmethod_order()
   CheckNotGui
+  CheckFeature clipboard_working
+  CheckFeature xterm_clipboard
+  CheckFeature wayland_clipboard
 
   set cpm=wayland,x11
 
@@ -34,7 +33,9 @@ func Test_clipmethod_order()
   :wlrestore 1239
   clipreset
 
-  call assert_equal("x11", v:clipmethod)
+  if exists("$DISPLAY")
+    call assert_equal("x11", v:clipmethod)
+  endif
 
   :xrestore 1239
   clipreset
@@ -49,9 +50,11 @@ func Test_clipmethod_order()
   call assert_equal("wayland", v:clipmethod)
   call assert_equal(1, has('clipboard_working'))
 
-  set cpm=x11
+  if exists("$DISPLAY")
+    set cpm=x11
 
-  call assert_equal("x11", v:clipmethod)
+    call assert_equal("x11", v:clipmethod)
+  endif
 
   set cpm=wayland
 
@@ -60,12 +63,12 @@ func Test_clipmethod_order()
   call EndWaylandCompositor(l:wayland_display)
 endfunc
 
-" Test if clipmethod is set to 'none' when gui is started
-func Test_clipmethod_is_none_when_gui()
+" Test if clipmethod is set to 'gui' when gui is started
+func Test_clipmethod_is_gui_when_gui_started()
   CheckCanRunGui
+  CheckFeature clipboard_working
 
   let lines =<< trim END
-    set cpm=wayland,x11
     call writefile([v:clipmethod != ""], 'Cbdscript')
     gui -f
     call writefile([v:clipmethod], 'Cbdscript', 'a')
@@ -76,12 +79,15 @@ func Test_clipmethod_is_none_when_gui()
 
   call writefile(lines, 'Cbdscript', 'D')
   call system($'{GetVimCommand()} -S Cbdscript')
-  call assert_equal(['1', 'none', 'none'], readfile('Cbdscript'))
+  call assert_equal(['1', 'gui', 'gui'], readfile('Cbdscript'))
 endfunc
 
 " Test if :clipreset switches methods when current one doesn't work
 func Test_clipreset_switches()
   CheckNotGui
+  CheckFeature clipboard_working
+  CheckFeature xterm_clipboard
+  CheckFeature wayland_clipboard
   CheckFeature clientserver
   CheckXServer
   CheckWaylandCompositor
@@ -101,7 +107,9 @@ func Test_clipreset_switches()
   wlrestore!
 
   call assert_equal("", v:wayland_display)
-  call assert_equal("x11", v:clipmethod)
+  if exists("$DISPLAY")
+    call assert_equal("x11", v:clipmethod)
+  endif
 
   " Do the same but kill a X11 server
 
@@ -119,7 +127,7 @@ func Test_clipreset_switches()
 
   let l:lines =<< trim END
     set cpm=x11
-    source shared.vim
+    source util/shared.vim
 
     func Test()
       clipreset
@@ -150,20 +158,34 @@ func Test_clipreset_switches()
   let l:job = job_start(l:cmd, { 'stoponexit': 'kill', 'out_io': 'null'})
 
   call WaitForAssert({-> assert_equal("run", job_status(l:job))})
-  call WaitForAssert({-> assert_match(l:name, serverlist())})
+  if exists("$DISPLAY")
+    call WaitForAssert({-> assert_match(l:name, serverlist())})
+  endif
 
   " Change x server to the one that will be killed, then block until
   " v:clipmethod is none.
-  call remote_send(l:name, ":xrestore " .. l:xdisplay ..
+  if exists("$DISPLAY")
+    call remote_send(l:name, ":xrestore " .. l:xdisplay ..
         \ ' | call DoIt()' .. "\<CR>")
 
-  call EndXServer(l:xdisplay)
+    call EndXServer(l:xdisplay)
+    call WaitFor({-> filereadable('Xtest')})
 
-  call WaitFor({-> filereadable('Xtest')})
+    " For some reason readfile sometimes returns an empty list despite the file
+    " existing, this why WaitForAssert() is used.
+    call WaitForAssert({-> assert_equal(['SUCCESS'], readfile('Xtest'))}, 1000)
+  endif
+endfunc
 
-  " For some reason readfile sometimes returns an empty list despite the file
-  " existing, this why WaitForAssert() is used.
-  call WaitForAssert({-> assert_equal(['SUCCESS'], readfile('Xtest'))}, 1000)
+" Test if v:clipmethod is "other" on non-gui versions of MacOS and Windows
+" builds
+func Test_clipmethod_is_other_on_non_x11_wayland()
+  CheckFeature clipboard_working
+  CheckNotGui
+  CheckNotFeature wayland
+  CheckNotFeature x11
+
+  call assert_equal("other", v:clipmethod)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

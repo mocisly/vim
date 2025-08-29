@@ -1,15 +1,19 @@
-" Maintainer: Luca Saccarola <github.e41mv@aleeas.com>
-" Former Maintainer: Charles E Campbell
-" Upstream: <https://github.com/saccarosium/netrw.vim>
-" Copyright:    Copyright (C) 2016 Charles E. Campbell {{{1
-"               Permission is hereby granted to use and distribute this code,
-"               with or without modifications, provided that this copyright
-"               notice is copied with it. Like anything else that's free,
-"               netrw.vim, netrwPlugin.vim, and netrwSettings.vim are provided
-"               *as is* and come with no warranty of any kind, either
-"               expressed or implied. By using this plugin, you agree that
-"               in no event will the copyright holder be liable for any damages
-"               resulting from the use of this software.
+" Creator:    Charles E Campbell
+" Previous Maintainer: Luca Saccarola <github.e41mv@aleeas.com>
+" Maintainer: This runtime file is looking for a new maintainer.
+" Last Change:
+" 2025 Aug 07 by Vim Project (use correct "=~#" for netrw_stylesize option #17901)
+" 2025 Aug 07 by Vim Project (netrw#BrowseX() distinguishes remote files #17794)
+" 2025 Aug 22 by Vim Project netrw#Explore handle terminal correctly #18069
+" Copyright:  Copyright (C) 2016 Charles E. Campbell {{{1
+"             Permission is hereby granted to use and distribute this code,
+"             with or without modifications, provided that this copyright
+"             notice is copied with it. Like anything else that's free,
+"             netrw.vim, netrwPlugin.vim, and netrwSettings.vim are provided
+"             *as is* and come with no warranty of any kind, either
+"             expressed or implied. By using this plugin, you agree that
+"             in no event will the copyright holder be liable for any damages
+"             resulting from the use of this software.
 "
 " Note: the code here was started in 1999 under a much earlier version of vim.  The directory browsing
 "       code was written using vim v6, which did not have Lists (Lists were first offered with vim-v7).
@@ -19,7 +23,7 @@ if &cp || exists("g:loaded_netrw")
     finish
 endif
 
-let g:loaded_netrw = "v183"
+let g:loaded_netrw = "v184"
 
 if !has("patch-9.1.1054") && !has('nvim')
     echoerr 'netrw needs Vim v9.1.1054'
@@ -427,9 +431,12 @@ function netrw#Explore(indx,dosplit,style,...)
 
   " record current directory
   let curdir     = simplify(b:netrw_curdir)
-  let curfiledir = substitute(expand("%:p"),'^\(.*[/\\]\)[^/\\]*$','\1','e')
   if !exists("g:netrw_cygwin") && has("win32")
     let curdir= substitute(curdir,'\','/','g')
+  endif
+  let curfiledir = substitute(expand("%:p"),'^\(.*[/\\]\)[^/\\]*$','\1','e')
+  if &buftype == "terminal"
+      let curfiledir = curdir
   endif
 
   " using completion, directories with spaces in their names (thanks, Bill Gates, for a truly dumb idea)
@@ -453,9 +460,9 @@ function netrw#Explore(indx,dosplit,style,...)
   sil! let keepregslash= @/
 
   " if   dosplit
-  " -or- file has been modified AND file not hidden when abandoned
+  " -or- buffer is not a terminal AND file has been modified AND file not hidden when abandoned
   " -or- Texplore used
-  if a:dosplit || (&modified && &hidden == 0 && &bufhidden != "hide") || a:style == 6
+  if a:dosplit || (&buftype != "terminal" && &modified && &hidden == 0 && &bufhidden != "hide") || a:style == 6
     call s:SaveWinVars()
     let winsz= g:netrw_winsize
     if a:indx > 0
@@ -4123,7 +4130,7 @@ function s:NetrwBrowseUpDir(islocal)
 endfunction
 
 " netrw#BrowseX:  (implements "x") executes a special "viewer" script or program for the {{{2
-"              given filename; typically this means given their extension.
+"                 given filename; typically this means given their extension.
 function netrw#BrowseX(fname)
     " special core dump handler
     if a:fname =~ '/core\(\.\d\+\)\=$' && exists("g:Netrw_corehandler")
@@ -4147,7 +4154,12 @@ function netrw#BrowseX(fname)
         let fname = substitute(fname, '^\~', expand("$HOME"), '')
     endif
 
-    call netrw#os#Open(s:NetrwFile(fname))
+    if fname =~ '^[a-z]\+://'
+        " open a remote file
+        call netrw#os#Open(fname)
+    else
+        call netrw#os#Open(s:NetrwFile(fname))
+    endif
 endfunction
 
 " s:NetrwBufRename: renames a buffer without the side effect of retaining an unlisted buffer having the old name {{{2
@@ -4861,7 +4873,6 @@ function s:NetrwMaps(islocal)
         nnoremap <buffer> <silent> <nowait> mg       :<c-u>call <SID>NetrwMarkFileGrep(1)<cr>
         nnoremap <buffer> <silent> <nowait> mh       :<c-u>call <SID>NetrwMarkHideSfx(1)<cr>
         nnoremap <buffer> <silent> <nowait> mm       :<c-u>call <SID>NetrwMarkFileMove(1)<cr>
-        nnoremap <buffer> <silent> <nowait> mp       :<c-u>call <SID>NetrwMarkFilePrint(1)<cr>
         nnoremap <buffer> <silent> <nowait> mr       :<c-u>call <SID>NetrwMarkFileRegexp(1)<cr>
         nnoremap <buffer> <silent> <nowait> ms       :<c-u>call <SID>NetrwMarkFileSource(1)<cr>
         nnoremap <buffer> <silent> <nowait> mT       :<c-u>call <SID>NetrwMarkFileTag(1)<cr>
@@ -4973,7 +4984,6 @@ function s:NetrwMaps(islocal)
         nnoremap <buffer> <silent> <nowait> mg       :<c-u>call <SID>NetrwMarkFileGrep(0)<cr>
         nnoremap <buffer> <silent> <nowait> mh       :<c-u>call <SID>NetrwMarkHideSfx(0)<cr>
         nnoremap <buffer> <silent> <nowait> mm       :<c-u>call <SID>NetrwMarkFileMove(0)<cr>
-        nnoremap <buffer> <silent> <nowait> mp       :<c-u>call <SID>NetrwMarkFilePrint(0)<cr>
         nnoremap <buffer> <silent> <nowait> mr       :<c-u>call <SID>NetrwMarkFileRegexp(0)<cr>
         nnoremap <buffer> <silent> <nowait> ms       :<c-u>call <SID>NetrwMarkFileSource(0)<cr>
         nnoremap <buffer> <silent> <nowait> mT       :<c-u>call <SID>NetrwMarkFileTag(0)<cr>
@@ -5932,39 +5942,6 @@ function s:NetrwMarkFileMove(islocal)
 
 endfunction
 
-" s:NetrwMarkFilePrint: (invoked by mp) This function prints marked files {{{2
-"                       using the hardcopy command.  Local marked-file list only.
-function s:NetrwMarkFilePrint(islocal)
-    let curbufnr= bufnr("%")
-
-    " sanity check
-    if !exists("s:netrwmarkfilelist_{curbufnr}") || empty(s:netrwmarkfilelist_{curbufnr})
-        call netrw#msg#Notify('ERROR', 'there are no marked files in this window (:help netrw-mf)')
-        return
-    endif
-    let curdir= s:NetrwGetCurdir(a:islocal)
-
-    if exists("s:netrwmarkfilelist_{curbufnr}")
-        let netrwmarkfilelist = s:netrwmarkfilelist_{curbufnr}
-        call s:NetrwUnmarkList(curbufnr,curdir)
-        for fname in netrwmarkfilelist
-            if a:islocal
-                if g:netrw_keepdir
-                    let fname= netrw#fs#ComposePath(curdir,fname)
-                endif
-            else
-                let fname= curdir.fname
-            endif
-            1split
-            " the autocmds will handle both local and remote files
-            exe "sil NetrwKeepj e ".fnameescape(fname)
-            hardcopy
-            q
-        endfor
-        2match none
-    endif
-endfunction
-
 " s:NetrwMarkFileRegexp: (invoked by mr) This function is used to mark {{{2
 "                        files when given a regexp (for which a prompt is
 "                        issued) (matches to name of files).
@@ -6195,37 +6172,20 @@ endfunction
 
 " s:NetrwOpenFile: query user for a filename and open it {{{2
 function s:NetrwOpenFile(islocal)
-    let ykeep= @@
     call inputsave()
-    let fname= input("Enter filename: ")
+    let fname = input("Enter filename: ")
     call inputrestore()
 
-    " determine if Lexplore is in use
-    if exists("t:netrw_lexbufnr")
-        " check if t:netrw_lexbufnr refers to a netrw window
-        let lexwinnr = bufwinnr(t:netrw_lexbufnr)
-        if lexwinnr != -1 && exists("g:netrw_chgwin") && g:netrw_chgwin != -1
-            exe "NetrwKeepj keepalt ".g:netrw_chgwin."wincmd w"
-            exe "NetrwKeepj e ".fnameescape(fname)
-            let @@= ykeep
-        endif
+    if empty(fname)
+        return
     endif
 
-    " Does the filename contain a path?
-    if fname !~ '[/\\]'
-        if exists("b:netrw_curdir")
-            " save position for benefit of Rexplore
-            let s:rexposn_{bufnr("%")}= winsaveview()
-            if b:netrw_curdir =~ '/$'
-                exe "NetrwKeepj e ".fnameescape(b:netrw_curdir.fname)
-            else
-                exe "e ".fnameescape(b:netrw_curdir."/".fname)
-            endif
-        endif
-    else
-        exe "NetrwKeepj e ".fnameescape(fname)
-    endif
-    let @@= ykeep
+    " save position for benefit of Rexplore
+    let s:rexposn_{bufnr("%")}= winsaveview()
+
+    execute "NetrwKeepj e " . fnameescape(!isabsolutepath(fname)
+                \ ? netrw#fs#ComposePath(b:netrw_curdir, fname)
+                \ : fname)
 endfunction
 
 " netrw#Shrink: shrinks/expands a netrw or Lexplorer window {{{2
@@ -6425,7 +6385,6 @@ function s:NetrwMenu(domenu)
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.8   '.g:NetrwTopLvlMenu.'Marked\ Files.Exe\ Cmd<tab>mx    mx'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.9   '.g:NetrwTopLvlMenu.'Marked\ Files.Move\ To\ Target<tab>mm    mm'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.10  '.g:NetrwTopLvlMenu.'Marked\ Files.Obtain<tab>O       O'
-            exe 'sil! menu '.g:NetrwMenuPriority.'.14.11  '.g:NetrwTopLvlMenu.'Marked\ Files.Print<tab>mp       mp'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.12  '.g:NetrwTopLvlMenu.'Marked\ Files.Replace<tab>R      R'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.13  '.g:NetrwTopLvlMenu.'Marked\ Files.Set\ Target<tab>mt mt'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.14  '.g:NetrwTopLvlMenu.'Marked\ Files.Tag<tab>mT mT'
@@ -7602,6 +7561,8 @@ function s:PerformListing(islocal)
     if a:islocal
         let filelist = s:NetrwLocalListingList(b:netrw_curdir, 1)
         call append(w:netrw_bannercnt - 1, filelist)
+        silent! NetrwKeepj g/^$/d
+        silent! NetrwKeepj %s/\r$//e
         execute printf("setl ts=%d", g:netrw_maxfilenamelen + 1)
     else " remote
         NetrwKeepj let badresult= s:NetrwRemoteListing()
@@ -9276,7 +9237,7 @@ endfunction
 "                       1000 -> 1K, 1000000 -> 1M, 1000000000 -> 1G
 function s:NetrwHumanReadable(sz)
 
-    if g:netrw_sizestyle == 'h'
+    if g:netrw_sizestyle ==# 'h'
         if a:sz >= 1000000000
             let sz = printf("%.1f",a:sz/1000000000.0)."g"
         elseif a:sz >= 10000000
@@ -9291,7 +9252,7 @@ function s:NetrwHumanReadable(sz)
             let sz= a:sz
         endif
 
-    elseif g:netrw_sizestyle == 'H'
+    elseif g:netrw_sizestyle ==# 'H'
         if a:sz >= 1073741824
             let sz = printf("%.1f",a:sz/1073741824.0)."G"
         elseif a:sz >= 10485760

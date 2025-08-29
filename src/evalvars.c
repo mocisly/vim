@@ -141,8 +141,8 @@ static struct vimvar
     {VV_NAME("t_blob",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_class",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_object",	 VAR_NUMBER), NULL, VV_RO},
-    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, VV_RO},
-    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, 0},
+    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, 0},
     {VV_NAME("termu7resp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termstyleresp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termblinkresp",	 VAR_STRING), NULL, VV_RO},
@@ -164,7 +164,9 @@ static struct vimvar
     {VV_NAME("stacktrace",	 VAR_LIST), &t_list_dict_any, VV_RO},
     {VV_NAME("t_tuple",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("wayland_display",  VAR_STRING), NULL, VV_RO},
-    {VV_NAME("clipmethod",  VAR_STRING), NULL, VV_RO},
+    {VV_NAME("clipmethod",	 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termda1",		 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termosc",	 VAR_STRING), NULL, VV_RO},
 };
 
 // shorthand
@@ -2909,6 +2911,17 @@ set_vim_var_string(
 	vimvars[idx].vv_str = vim_strnsave(val, len);
 }
 
+    void
+set_vim_var_string_direct(
+    int		idx,
+    char_u	*val)
+{
+    clear_tv(&vimvars[idx].vv_di.di_tv);
+    vimvars[idx].vv_tv_type = VAR_STRING;
+
+    vimvars[idx].vv_str = val;
+}
+
 /*
  * Set List v: variable to "val".
  */
@@ -3196,6 +3209,20 @@ eval_variable(
 	    int	    has_g_prefix = STRNCMP(name, "g:", 2) == 0;
 	    ufunc_T *ufunc = find_func(name, FALSE);
 
+	    if (ufunc != NULL && cc == '<')
+	    {
+		// handle generic function
+		char_u	*argp = name + len;
+		name[len] = cc;
+		ufunc = eval_generic_func(ufunc, name, &argp);
+		name[len] = NUL;
+		if (ufunc == NULL)
+		{
+		    ret = FAIL;
+		    goto done;
+		}
+	    }
+
 	    // In Vim9 script we can get a function reference by using the
 	    // function name.  For a global non-autoload function "g:" is
 	    // required.
@@ -3207,9 +3234,22 @@ eval_variable(
 		{
 		    rettv->v_type = VAR_FUNC;
 		    if (has_g_prefix)
+		    {
 			// Keep the "g:", otherwise script-local may be
 			// assumed.
-			rettv->vval.v_string = vim_strsave(name);
+			if (cc != '<')
+			    rettv->vval.v_string = vim_strsave(name);
+			else
+			{
+			    // append the generic function arguments
+			    char_u	*argp = name + len;
+			    name[len] = cc;
+			    rettv->vval.v_string =
+				append_generic_func_type_args(name, len,
+									&argp);
+			    name[len] = NUL;
+			}
+		    }
 		    else
 			rettv->vval.v_string = vim_strnsave(ufunc->uf_name, ufunc->uf_namelen);
 		    if (rettv->vval.v_string != NULL)

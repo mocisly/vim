@@ -1,8 +1,6 @@
 " Test Vim9 assignments
 
-source check.vim
-import './vim9.vim' as v9
-source term_util.vim
+import './util/vim9.vim' as v9
 
 let s:appendToMe = 'xxx'
 let s:addToMe = 111
@@ -189,6 +187,7 @@ def Test_assignment()
 
   v9.CheckDefFailure(['&notex += 3'], 'E113:')
   v9.CheckDefFailure(['&ts ..= "xxx"'], 'E1019:')
+  v9.CheckDefFailure(['var d = {k: [0]}', 'd.k ..= "x"'], 'E1012: Type mismatch; expected list<number> but got string')
   v9.CheckDefFailure(['&ts = [7]'], 'E1012:')
   v9.CheckDefExecFailure(['&ts = g:alist'], 'E1012: Type mismatch; expected number but got list<number>')
   v9.CheckDefFailure(['&ts = "xx"'], 'E1012:')
@@ -3230,7 +3229,7 @@ def Test_type_check()
     assert_fails('N = d', 'E1012: Type mismatch; expected number but got dict<number>')
     assert_fails('N = l', 'E1012: Type mismatch; expected number but got list<number>')
     assert_fails('N = b', 'E1012: Type mismatch; expected number but got blob')
-    assert_fails('N = Fn', 'E1012: Type mismatch; expected number but got func([unknown]): number')
+    assert_fails('N = Fn', 'E1012: Type mismatch; expected number but got func([unknown]): any')
     assert_fails('N = A', 'E1405: Class "A" cannot be used as a value')
     assert_fails('N = o', 'E1012: Type mismatch; expected number but got object<A>')
     assert_fails('N = T', 'E1403: Type alias "T" cannot be used as a value')
@@ -3248,7 +3247,7 @@ def Test_type_check()
     assert_fails('var [X1: number, Y: number] = [1, d]', 'E1012: Type mismatch; expected number but got dict<number>')
     assert_fails('var [X2: number, Y: number] = [1, l]', 'E1012: Type mismatch; expected number but got list<number>')
     assert_fails('var [X3: number, Y: number] = [1, b]', 'E1012: Type mismatch; expected number but got blob')
-    assert_fails('var [X4: number, Y: number] = [1, Fn]', 'E1012: Type mismatch; expected number but got func([unknown]): number')
+    assert_fails('var [X4: number, Y: number] = [1, Fn]', 'E1012: Type mismatch; expected number but got func([unknown]): any')
     assert_fails('var [X7: number, Y: number] = [1, A]', 'E1405: Class "A" cannot be used as a value')
     assert_fails('var [X8: number, Y: number] = [1, o]', 'E1012: Type mismatch; expected number but got object<A>')
     assert_fails('var [X8: number, Y: number] = [1, T]', 'E1403: Type alias "T" cannot be used as a value')
@@ -3346,7 +3345,7 @@ def Test_func_argtype_check()
     assert_fails('IntArg(d)', 'E1013: Argument 1: type mismatch, expected number but got dict<number>')
     assert_fails('IntArg(l)', 'E1013: Argument 1: type mismatch, expected number but got list<number>')
     assert_fails('IntArg(b)', 'E1013: Argument 1: type mismatch, expected number but got blob')
-    assert_fails('IntArg(Fn)', 'E1013: Argument 1: type mismatch, expected number but got func([unknown]): number')
+    assert_fails('IntArg(Fn)', 'E1013: Argument 1: type mismatch, expected number but got func([unknown]): any')
     if has('channel')
       var j: job = test_null_job()
       var ch: channel = test_null_channel()

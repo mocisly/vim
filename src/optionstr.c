@@ -35,7 +35,7 @@ static char *(p_tplo_align_values[]) = {"left", "right", NULL};
 #endif
 #if defined(FEAT_DIFF)
 // Note: Keep this in sync with diffopt_changed()
-static char *(p_dip_values[]) = {"filler", "context:", "iblank", "icase", "iwhite", "iwhiteall", "iwhiteeol", "horizontal", "vertical", "closeoff", "hiddenoff", "foldcolumn:", "followwrap", "internal", "indent-heuristic", "algorithm:", "inline:", "linematch:", NULL};
+static char *(p_dip_values[]) = {"filler", "anchor", "context:", "iblank", "icase", "iwhite", "iwhiteall", "iwhiteeol", "horizontal", "vertical", "closeoff", "hiddenoff", "foldcolumn:", "followwrap", "internal", "indent-heuristic", "algorithm:", "inline:", "linematch:", NULL};
 static char *(p_dip_algorithm_values[]) = {"myers", "minimal", "patience", "histogram", NULL};
 static char *(p_dip_inline_values[]) = {"none", "simple", "char", "word", NULL};
 #endif
@@ -45,7 +45,7 @@ static char *(p_ff_values[]) = {FF_UNIX, FF_DOS, FF_MAC, NULL};
 // Note: Keep this in sync with did_set_clipboard()
 static char *(p_cb_values[]) = {"unnamed", "unnamedplus", "autoselect", "autoselectplus", "autoselectml", "html", "exclude:", NULL};
 // Note: Keep this in sync with get_clipmethod()
-static char *(p_cpm_values[]) = {"wayland", "x11", NULL};
+static char *(p_cpm_values[]) = {"wayland", "x11", "gui", "other", NULL};
 #endif
 #ifdef FEAT_CRYPT
 static char *(p_cm_values[]) = {"zip", "blowfish", "blowfish2",
@@ -103,7 +103,7 @@ static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm"
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
 // Note: Keep this in sync with check_opt_wim()
 static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", NULL};
-static char *(p_wop_values[]) = {"fuzzy", "tagfile", "pum", NULL};
+static char *(p_wop_values[]) = {"fuzzy", "tagfile", "pum", "exacttext", NULL};
 #ifdef FEAT_WAK
 static char *(p_wak_values[]) = {"yes", "menu", "no", NULL};
 #endif
@@ -252,6 +252,15 @@ illegal_char(char *errbuf, size_t errbuflen, int c)
     return errbuf;
 }
 
+    static char *
+illegal_char_after_chr(char *errbuf, size_t errbuflen, int c)
+{
+    if (errbuf == NULL)
+	return "";
+    vim_snprintf(errbuf, errbuflen, _(e_illegal_character_after_chr), c);
+    return errbuf;
+}
+
 /*
  * Check string options in a buffer for NULL value.
  */
@@ -341,6 +350,9 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_tags);
     check_string_option(&buf->b_p_tc);
     check_string_option(&buf->b_p_dict);
+#ifdef FEAT_DIFF
+    check_string_option(&buf->b_p_dia);
+#endif
     check_string_option(&buf->b_p_tsr);
     check_string_option(&buf->b_p_lw);
     check_string_option(&buf->b_p_bkc);
@@ -1267,7 +1279,10 @@ did_set_breakindentopt(optset_T *args)
 }
 
     int
-expand_set_breakindentopt(optexpand_T *args, int *numMatches, char_u ***matches)
+expand_set_breakindentopt(
+    optexpand_T		*args,
+    int			*numMatches,
+    char_u		***matches)
 {
     return expand_set_opt_string(
 	    args,
@@ -1641,19 +1656,18 @@ did_set_complete(optset_T *args)
 	    }
 	}
 	if (char_before != NUL)
-	{
-	    if (args->os_errbuf)
-	    {
-		vim_snprintf((char *)args->os_errbuf, args->os_errbuflen,
-			_(e_illegal_character_after_chr), char_before);
-		return args->os_errbuf;
-	    }
-	    return NULL;
-	}
+	    return illegal_char_after_chr(args->os_errbuf, args->os_errbuflen,
+		    char_before);
 	// Skip comma and spaces
 	while (*p == ',' || *p == ' ')
 	    p++;
     }
+
+#ifdef FEAT_COMPL_FUNC
+    if (set_cpt_callbacks(args) != OK)
+	return illegal_char_after_chr(args->os_errbuf, args->os_errbuflen,
+		'F');
+#endif
     return NULL;
 }
 
@@ -2047,6 +2061,18 @@ expand_set_debug(optexpand_T *args, int *numMatches, char_u ***matches)
 }
 
 #if defined(FEAT_DIFF) || defined(PROTO)
+/*
+ * The 'diffanchors' option is changed.
+ */
+    char *
+did_set_diffanchors(optset_T *args)
+{
+    if (diffanchors_changed(args->os_flags & OPT_LOCAL) == FAIL)
+	return e_invalid_argument;
+
+    return NULL;
+}
+
 /*
  * The 'diffopt' option is changed.
  */
@@ -3239,9 +3265,20 @@ did_set_mkspellmem(optset_T *args UNUSED)
 did_set_mouse(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
+    char	*retval;
 
-    return did_set_option_listflag(*varp, (char_u *)MOUSE_ALL, args->os_errbuf,
+    retval = did_set_option_listflag(*varp, (char_u *)MOUSE_ALL, args->os_errbuf,
 		    args->os_errbuflen);
+    if (retval == NULL)
+    {
+	redraw_tabline = TRUE;
+	if (tabline_height() > 0)
+	    update_screen(UPD_VALID);
+#if (defined(FEAT_PROP_POPUP) && defined(FEAT_QUICKFIX)) || defined(PROTO)
+	popup_close_info(); // Close info popup to apply new properties
+#endif
+    }
+    return retval;
 }
 
     int
@@ -3579,7 +3616,7 @@ did_set_rulerformat(optset_T *args)
 }
 #endif
 
-#if defined(FEAT_TABPANEL)
+#if defined(FEAT_TABPANEL) || defined(PROTO)
 /*
  * Process the new 'tabpanelopt' option value.
  */
@@ -3722,7 +3759,10 @@ did_set_sessionoptions(optset_T *args)
 }
 
     int
-expand_set_sessionoptions(optexpand_T *args, int *numMatches, char_u ***matches)
+expand_set_sessionoptions(
+    optexpand_T		*args,
+    int			*numMatches,
+    char_u		***matches)
 {
     return expand_set_opt_string(
 	    args,
@@ -4274,7 +4314,10 @@ did_set_toolbariconsize(optset_T *args UNUSED)
 }
 
     int
-expand_set_toolbariconsize(optexpand_T *args, int *numMatches, char_u ***matches)
+expand_set_toolbariconsize(
+    optexpand_T	*args,
+    int		*numMatches,
+    char_u	***matches)
 {
     return expand_set_opt_string(
 	    args,
@@ -5025,7 +5068,7 @@ restore_shm_value(void)
  * Export the environment variable $MYVIMDIR to the first item in runtimepath
  */
     void
-export_myvimdir()
+export_myvimdir(void)
 {
     int		dofree = FALSE;
     char_u	*p;

@@ -983,6 +983,18 @@ doESCkey:
 	case Ctrl_H:
 	    did_backspace = ins_bs(c, BACKSPACE_CHAR, &inserted_space);
 	    auto_format(FALSE, TRUE);
+	    if (did_backspace && p_ac && !char_avail()
+		    && curwin->w_cursor.col > 0)
+	    {
+		c = char_before_cursor();
+		if (vim_isprintc(c))
+		{
+		    update_screen(UPD_VALID); // Show char deletion immediately
+		    out_flush();
+		    ins_compl_enable_autocomplete();
+		    goto docomplete; // Trigger autocompletion
+		}
+	    }
 	    break;
 
 	case Ctrl_W:	// delete word before the cursor
@@ -1401,6 +1413,15 @@ normalchar:
 	    // closed fold.
 	    foldOpenCursor();
 #endif
+	    // Trigger autocompletion
+	    if (p_ac && !char_avail() && vim_isprintc(c))
+	    {
+		update_screen(UPD_VALID); // Show character immediately
+		out_flush();
+		ins_compl_enable_autocomplete();
+		goto docomplete;
+	    }
+
 	    break;
 	}   // end of switch (c)
 
@@ -2233,6 +2254,10 @@ insertchar(
     if (       !ISSPECIAL(c)
 	    && (!has_mbyte || (*mb_char2len)(c) == 1)
 	    && !has_insertcharpre()
+#ifdef FEAT_EVAL
+	    // Skip typeahead if test_override("char_avail", 1) was called.
+	    && !disable_char_avail_for_testing
+#endif
 	    && vpeekc() != NUL
 	    && !(State & REPLACE_FLAG)
 	    && !cindent_on()

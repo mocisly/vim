@@ -1523,6 +1523,7 @@ BASIC_SRC = \
 	findfile.c \
 	float.c \
 	fold.c \
+	fuzzy.c \
 	getchar.c \
 	gc.c \
 	gui_xim.c \
@@ -1598,6 +1599,7 @@ BASIC_SRC = \
 	vim9compile.c \
 	vim9execute.c \
 	vim9expr.c \
+	vim9generics.c \
 	vim9instr.c \
 	vim9script.c \
 	vim9type.c \
@@ -1700,6 +1702,7 @@ OBJ_COMMON = \
 	objects/findfile.o \
 	objects/float.o \
 	objects/fold.o \
+	objects/fuzzy.o \
 	objects/getchar.o \
 	objects/gc.o \
 	objects/gui_xim.o \
@@ -1771,6 +1774,7 @@ OBJ_COMMON = \
 	objects/vim9compile.o \
 	objects/vim9execute.o \
 	objects/vim9expr.o \
+	objects/vim9generics.o \
 	objects/vim9instr.o \
 	objects/vim9script.o \
 	objects/vim9type.o \
@@ -1884,6 +1888,7 @@ PRO_AUTO = \
 	findfile.pro \
 	float.pro \
 	fold.pro \
+	fuzzy.pro \
 	getchar.pro \
 	gc.pro \
 	gui_xim.pro \
@@ -1967,6 +1972,7 @@ PRO_AUTO = \
 	vim9compile.pro \
 	vim9execute.pro \
 	vim9expr.pro \
+	vim9generics.pro \
 	vim9instr.pro \
 	vim9script.pro \
 	vim9type.pro \
@@ -3022,6 +3028,7 @@ shadow:	runtime pixmaps
 				 ../../testdir/ru_RU \
 				 ../../testdir/sautest \
 				 ../../testdir/samples \
+				 ../../testdir/util \
 				 ../../testdir/dumps \
 				 ../../testdir/*.ok \
 				 ../../testdir/testluaplugin \
@@ -3304,6 +3311,9 @@ objects/float.o: float.c
 
 objects/fold.o: fold.c
 	$(CCC) -o $@ fold.c
+
+objects/fuzzy.o: fuzzy.c
+	$(CCC) -o $@ fuzzy.c
 
 objects/getchar.o: getchar.c
 	$(CCC) -o $@ getchar.c
@@ -3629,6 +3639,9 @@ objects/vim9execute.o: vim9execute.c
 objects/vim9expr.o: vim9expr.c
 	$(CCC) -o $@ vim9expr.c
 
+objects/vim9generics.o: vim9generics.c
+	$(CCC) -o $@ vim9generics.c
+
 objects/vim9instr.o: vim9instr.c
 	$(CCC) -o $@ vim9instr.c
 
@@ -3645,19 +3658,19 @@ objects/window.o: window.c
 	$(CCC) -o $@ window.c
 
 objects/wayland.o: wayland.c
-	$(CCC) -o $@ wayland.c
+	$(CCC) $(WAYLAND_CFLAGS) $(WAYLAND_CPPFLAGS) -o $@ wayland.c
 
 objects/wlr-data-control-unstable-v1.o: auto/wayland/wlr-data-control-unstable-v1.c
-	$(CCC) -o $@ auto/wayland/wlr-data-control-unstable-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) $(WAYLAND_CPPFLAGS) -o $@ auto/wayland/wlr-data-control-unstable-v1.c
 
 objects/ext-data-control-v1.o: auto/wayland/ext-data-control-v1.c
-	$(CCC) -o $@ auto/wayland/ext-data-control-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) $(WAYLAND_CPPFLAGS) -o $@ auto/wayland/ext-data-control-v1.c
 
 objects/xdg-shell.o: auto/wayland/xdg-shell.c
-	$(CCC) -o $@ auto/wayland/xdg-shell.c
+	$(CCC) $(WAYLAND_CFLAGS) $(WAYLAND_CPPFLAGS) -o $@ auto/wayland/xdg-shell.c
 
 objects/primary-selection-unstable-v1.o: auto/wayland/primary-selection-unstable-v1.c
-	$(CCC) -o $@ auto/wayland/primary-selection-unstable-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) $(WAYLAND_CPPFLAGS) -o $@ auto/wayland/primary-selection-unstable-v1.c
 
 objects/netbeans.o: netbeans.c
 	$(CCC) -o $@ netbeans.c
@@ -3977,6 +3990,11 @@ objects/float.o: float.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
  globals.h errors.h
 objects/fold.o: fold.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
+ libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
+ globals.h errors.h
+objects/fuzzy.o: fuzzy.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
@@ -4356,6 +4374,11 @@ objects/vim9expr.o: vim9expr.c vim.h protodef.h auto/config.h feature.h os_unix.
  proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
  globals.h errors.h vim9.h
+objects/vim9generics.o: vim9generics.c vim.h protodef.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h \
+ beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
+ libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
+ ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
 objects/vim9instr.o: vim9instr.c vim.h protodef.h auto/config.h feature.h \
  os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h \
  beval.h proto/gui_beval.pro structs.h regexp.h gui.h \

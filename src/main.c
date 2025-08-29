@@ -883,8 +883,6 @@ vim_main2(void)
     // Requesting the termresponse is postponed until here, so that a "-c q"
     // argument doesn't make it appear in the shell Vim was started from.
     may_req_termresponse();
-
-    may_req_bg_color();
 #endif
 
     // start in insert mode
@@ -1855,7 +1853,8 @@ getout(int exitval)
  * Get the name of the display, before gui_prepare() removes it from
  * argv[].  Used for the xterm-clipboard display.
  *
- * Also find the --server... arguments and --socketid and --windowid
+ * Also find the --server, --clientserver... arguments and --socketid and
+ * --windowid
  */
     static void
 early_arg_scan(mparm_T *parmp UNUSED)
@@ -1900,6 +1899,22 @@ early_arg_scan(mparm_T *parmp UNUSED)
 		gui.dofork = FALSE;
 #  endif
 	}
+#  if defined(FEAT_X11) && defined(FEAT_SOCKETSERVER)
+	else if (STRNICMP(argv[i], "--clientserver", 14) == 0)
+	{
+	    char_u *arg;
+	    if (i == argc - 1)
+		mainerr_arg_missing((char_u *)argv[i]);
+	    arg = (char_u *)argv[++i];
+
+	    if (STRICMP(arg, "socket") == 0)
+		clientserver_method = CLIENTSERVER_METHOD_SOCKET;
+	    else if (STRICMP(arg, "x11") == 0)
+		clientserver_method = CLIENTSERVER_METHOD_X11;
+	    else
+		mainerr(ME_UNKNOWN_OPTION, arg);
+	}
+#  endif
 # endif
 
 # if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN)
@@ -2096,7 +2111,19 @@ command_line_scan(mparm_T *parmp)
 	{
 	    want_argument = FALSE;
 	    c = argv[0][argv_idx++];
-#ifdef VMS
+#if defined( VMS)
+	    /* 2025-05-13  SMS
+	     * On sufficiently recent non-VAX systems, case preservation
+	     * of the command line is possible/routine.  And quotation
+	     * always works, and is the expected method in such cases.
+	     * However, leaving this slash-prefix scheme available is
+	     * nearly harmless.  But note that it doesn't help with the
+	     * case of other command-line arguments, such as file names.
+	     * For details, see os_vms.c:vms_init().
+	     * On VAX and old non-VAX systems, or with SET PROC/PARSE=TRAD,
+	     * DCL upcases the command line, and the C RTL downcases it.
+	     * I would not say "only uses upper case command lines".
+	     */
 	    /*
 	     * VMS only uses upper case command lines.  Interpret "-X" as "-x"
 	     * and "-/X" as "-X".
@@ -2106,9 +2133,12 @@ command_line_scan(mparm_T *parmp)
 		c = argv[0][argv_idx++];
 		c = TOUPPER_ASC(c);
 	    }
-	    else
-		c = TOLOWER_ASC(c);
-#endif
+	    /* Note that although DCL might upcase things, the C RTL
+	     * will only downcase them, so there should be no need for
+	     * the following (additional?) downcasing (which spoils the
+	     * preserve-case results):
+	     */
+#endif /* defined( VMS) */
 	    switch (c)
 	    {
 	    case NUL:		// "vim -"  read from stdin
@@ -2205,7 +2235,11 @@ command_line_scan(mparm_T *parmp)
 		else if (STRNICMP(argv[0] + argv_idx, "serverlist", 10) == 0)
 		    ; // already processed -- no arg
 		else if (STRNICMP(argv[0] + argv_idx, "servername", 10) == 0
-		       || STRNICMP(argv[0] + argv_idx, "serversend", 10) == 0)
+		       || STRNICMP(argv[0] + argv_idx, "serversend", 10) == 0
+# if defined(FEAT_X11) && defined(FEAT_SOCKETSERVER)
+		       || STRNICMP(argv[0] + argv_idx, "clientserver", 12) == 0
+# endif
+		       )
 		{
 		    // already processed -- snatch the following arg
 		    if (argc > 1)
@@ -3610,9 +3644,10 @@ usage(void)
 	    break;
 	mch_msg(_("\n   or:"));
     }
-#ifdef VMS
-    mch_msg(_("\nWhere case is ignored prepend / to make flag upper case"));
-#endif
+#if defined( VMS)
+    mch_msg(_("\nWhere command is down-cased, prepend / (like: -/R) to treat flag as upper-case."));
+    mch_msg(_("\nOr, where supported, SET PROC/PARSE=EXT, or else quote upper-case material."));
+#endif /* defined( VMS) */
 
     mch_msg(_("\n\nArguments:\n"));
     main_msg(_("--\t\t\tOnly file names after this"));
@@ -3696,6 +3731,9 @@ usage(void)
     main_msg(_("-Y\t\t\tDo not connect to Wayland compositor"));
 #endif
 #ifdef FEAT_CLIENTSERVER
+# if defined(FEAT_X11) && defined(FEAT_SOCKETSERVER)
+    main_msg(_("--clientserver <socket|x11> Backend for clientserver communication"));
+# endif
     main_msg(_("--remote <files>\tEdit <files> in a Vim server if possible"));
     main_msg(_("--remote-silent <files>  Same, don't complain if there is no server"));
     main_msg(_("--remote-wait <files>  As --remote but wait for files to have been edited"));

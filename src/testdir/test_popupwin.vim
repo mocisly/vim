@@ -1,10 +1,8 @@
 " Tests for popup windows
 
-source check.vim
 CheckFeature popupwin
 
-source screendump.vim
-source term_util.vim
+source util/screendump.vim
 
 func Test_simple_popup()
   CheckScreendump
@@ -3728,6 +3726,31 @@ func Test_popupmenu_info_noborder()
   call StopVimInTerminal(buf)
 endfunc
 
+" Info popup should not have close (X) and resize buttons when mouse is
+" disabled.
+func Test_popupmenu_info_border_mouse()
+  CheckScreendump
+  CheckFeature quickfix
+
+  let lines = Get_popupmenu_lines()
+  call writefile(lines, 'XtestInfoPopup', 'D')
+
+  let buf = RunVimInTerminal('-S XtestInfoPopup', #{rows: 14})
+  call TermWait(buf, 25)
+
+  call term_sendkeys(buf, "Go\<CR>\<C-X>\<C-U>")
+  call TermWait(buf, 25)
+  call VerifyScreenDump(buf, 'Test_popupwin_info_border_mouse_1', {})
+
+  call term_sendkeys(buf, "\<ESC>u:set mouse=\<CR>")
+  call term_sendkeys(buf, "o\<C-X>\<C-U>")
+  call TermWait(buf, 25)
+  call VerifyScreenDump(buf, 'Test_popupwin_info_border_mouse_2', {})
+
+  call term_sendkeys(buf, "\<Esc>")
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_popupmenu_info_align_menu()
   CheckScreendump
   CheckFeature quickfix
@@ -4491,6 +4514,124 @@ func Test_popupwin_callback_closes_popupwin()
 
   " clean up
   call StopVimInTerminal(buf)
+endfunc
+
+func Test_popupwin_closing_buffer()
+  augroup Test_popupwin_closing_buffer
+    autocmd!
+    autocmd BufWipeout * ++once
+          \ call assert_fails('call popup_create(bufnr(), {})', 'E1551:')
+  augroup END
+
+  new
+  setlocal bufhidden=wipe
+  quit  " Popup window to closed buffer used to remain
+  redraw!  " Would crash
+
+  autocmd! Test_popupwin_closing_buffer
+  augroup! Test_popupwin_closing_buffer
+  %bd!
+endfunc
+
+func Test_popupwin_firstline_after_scroll()
+  CheckScreendump
+
+  let lines =<< trim END
+    vim9script
+
+    def Popup(): number
+      return popup_create([], {
+        border: [1, 1, 1, 1],
+        close: 'click',
+        minheight: 1,
+        maxheight: 10,
+        scrollbar: true,
+        minwidth: &columns - 5,
+        maxwidth: &columns - 5,
+      })
+    enddef
+
+    var id = Popup()
+    g:popup_id = id
+    popup_settext(id, repeat(['abcd'], 20))
+  END
+  call writefile(lines, 'XtestPopupScroll_win', 'D')
+  let buf = RunVimInTerminal('-S XtestPopupScroll_win', {})
+  call TermWait(buf, 50)
+
+  call term_sendkeys(buf, ":call popup_setoptions(g:popup_id, {'firstline': 6})\<CR>")
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, ":call popup_settext(g:popup_id, [])\<CR>")
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, ":call popup_settext(1001, ['a', 'b', 'c'])\<CR>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_popupwin_first_after_scroll', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_popupwin_bottom_position_without_decoration()
+  CheckScreendump
+  let lines =<< trim END
+    function! CreatePopup()
+      call popup_create(repeat(['asdf'], 10), {
+          \ 'pos':      'topleft',
+          \ 'col':      'cursor+1',
+          \ 'line':     'cursor',
+          \ 'border':   [1, 0, 0, 0],
+          \ 'padding':  [0, 0, 0, 0],
+          \ 'title':    '',
+          \ })
+      call popup_create(repeat(['asdf'], 10), {
+          \ 'pos':      'topleft',
+          \ 'col':      'cursor+10',
+          \ 'line':     'cursor',
+          \ 'border':   [0, 0, 0, 0],
+          \ 'padding':  [0, 0, 0, 0],
+          \ 'title':   'title',
+          \ })
+      call popup_create(repeat(['asdf'], 10), {
+          \ 'pos':      'topleft',
+          \ 'col':      'cursor+20',
+          \ 'line':     'cursor',
+          \ 'border':   [0, 0, 0, 0],
+          \ 'padding':  [0, 0, 0, 0],
+          \ 'title':   '',
+          \ })
+      call popup_create(repeat(['asdf'], 10), {
+          \ 'pos':      'topleft',
+          \ 'col':      'cursor+30',
+          \ 'line':     'cursor',
+          \ 'border':   [0, 0, 0, 0],
+          \ 'padding':  [1, 0, 0, 0],
+          \ 'title':   '',
+          \ })
+    endfunction
+  END
+  call writefile(lines, 'XtestPopupBottomPostion', 'D')
+  let buf = RunVimInTerminal('-S XtestPopupBottomPostion', #{rows: 20})
+  call term_sendkeys(buf, 'a')
+  call term_sendkeys(buf, repeat("\<CR>", 18))
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, "\<ESC>:call CreatePopup()\<CR>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_popupwin_bottom_position_without_decoration', {})
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_popup_getwininfo_tabnr()
+  tab split
+  let winid1 = popup_create('sup', #{tabpage: 1})
+  let winid2 = popup_create('sup', {})
+  let winid3 = popup_create('sup', #{tabpage: -1})
+  call assert_equal(1, getwininfo(winid1)[0].tabnr)
+  call assert_equal(2, getwininfo(winid2)[0].tabnr)
+  call assert_equal(0, getwininfo(winid3)[0].tabnr)
+
+  call popup_close(winid1)
+  call popup_close(winid2)
+  call popup_close(winid3)
+  tabonly
 endfunc
 
 " vim: shiftwidth=2 sts=2

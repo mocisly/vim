@@ -479,13 +479,7 @@ handle_import(
 	res = handle_import_fname(from_name, is_autoload, &sid);
 	vim_free(from_name);
     }
-    else if (mch_isFullName(tv.vval.v_string)
-#ifdef BACKSLASH_IN_FILENAME
-	    // On MS-Windows omitting the drive is still handled like an
-	    // absolute path, not using 'runtimepath'.
-	    || *tv.vval.v_string == '/' || *tv.vval.v_string == '\\'
-#endif
-	    )
+    else if (mch_isFullName(tv.vval.v_string))
     {
 	// Absolute path: "/tmp/name.vim"
 	res = handle_import_fname(tv.vval.v_string, is_autoload, &sid);
@@ -846,7 +840,7 @@ vim9_declare_scriptvar(exarg_T *eap, char_u *arg)
 
     // parse type, check for reserved name
     p = skipwhite(p + 1);
-    type = parse_type(&p, &si->sn_type_list, TRUE);
+    type = parse_type(&p, &si->sn_type_list, NULL, NULL, TRUE);
     if (type == NULL || check_reserved_name(name, FALSE) == FAIL)
     {
 	vim_free(name);

@@ -403,8 +403,8 @@ vwl_display_flush(vwl_display_T *display)
     FD_ZERO(&wfds);
     FD_SET(display->fd, &wfds);
 
-    tv.tv_sec	= 0;
-    tv.tv_usec	= p_wtm * 1000;
+    tv.tv_sec	= p_wtm / 1000;
+    tv.tv_usec	= (p_wtm % 1000) * 1000;
 #endif
 
     if (display->proxy == NULL)
@@ -422,6 +422,10 @@ vwl_display_flush(vwl_display_T *display)
 	    if (select(display->fd + 1, NULL, &wfds, NULL, &tv) <= 0)
 #endif
 		return FAIL;
+#ifdef HAVE_SELECT
+	tv.tv_sec	= 0;
+	tv.tv_usec	= p_wtm * 1000;
+#endif
     }
     // Return FAIL on error or timeout
     if ((errno != 0 && errno != EAGAIN) || ret == -1)
@@ -514,8 +518,8 @@ vwl_display_dispatch(vwl_display_T *display)
     FD_ZERO(&rfds);
     FD_SET(display->fd, &rfds);
 
-    tv.tv_sec	    = 0;
-    tv.tv_usec	    = p_wtm * 1000;
+    tv.tv_sec	    = p_wtm / 1000;
+    tv.tv_usec	    = (p_wtm % 1000) * 1000;
 #endif
 
     if (display->proxy == NULL)
@@ -603,7 +607,9 @@ vwl_log_handler(const char *fmt, va_list args)
     // Remove newline that libwayland puts
     buf[STRLEN(buf) - 1] = NUL;
 
+#ifdef FEAT_EVAL
     ch_log(NULL, "%s", buf);
+#endif
     emsg(buf);
 
     vim_free(buf);
@@ -2098,7 +2104,7 @@ vwl_data_device_listener_finished(vwl_data_device_T *device)
 {
     vwl_clipboard_selection_T *clip_sel = device->data;
 
-    vwl_data_device_destroy(device, FALSE);
+    vwl_data_device_destroy(&clip_sel->device, FALSE);
     vwl_data_offer_destroy(clip_sel->offer, TRUE);
     vwl_data_source_destroy(&clip_sel->source, FALSE);
     vwl_clipboard_free_mime_types(clip_sel);
@@ -2246,8 +2252,39 @@ wayland_cb_own_selection(
 	return FAIL;
 
     if (clip_sel->source.proxy != NULL)
-	// We already own the selection
-	return OK;
+    {
+	if (selection == WAYLAND_SELECTION_PRIMARY)
+	    // We already own the selection, ignore (only do this for primary
+	    // selection). We don't re set the selection because then we would
+	    // be setting the selection every time the user moves the visual
+	    // selection cursor, which is messy and inefficient.
+	    //
+	    // Vim doesn't have a mechanism to only set the selection
+	    // when the user stops selecting (such as the user releasing the
+	    // mouse button in graphical Wayland applications). So this
+	    // behaviour in Vim differs from other Wayland applications.
+	    return OK;
+	else if (selection == WAYLAND_SELECTION_REGULAR)
+	{
+	    // Technically we don't need to do this as we already own the
+	    // selection, however if a user yanks text a second time, the
+	    // text yanked won't appear in their clipboard manager if they are
+	    // using one.
+	    //
+	    // This can be unexpected behaviour for the user so its probably
+	    // better to do it this way. Additionally other Wayland applications
+	    // seem to set the selection every time.
+	    //
+	    // There should be no noticable performance change since its not
+	    // like this is running in the background constantly in Vim, only
+	    // runs once when the user yanks text to the system clipboard.
+	    vwl_data_source_destroy(&clip_sel->source, FALSE);
+	    vwl_display_flush(&vwl_display);
+	}
+	else
+	    // Shouldn't happen
+	    return FAIL;
+    }
 
     if (!wayland_client_is_connected(FALSE) ||
 	    !vwl_clipboard_selection_is_ready(clip_sel))
