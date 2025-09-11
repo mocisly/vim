@@ -1108,7 +1108,6 @@ $quote	eval.txt	/*$quote*
 't_KJ'	term.txt	/*'t_KJ'*
 't_KK'	term.txt	/*'t_KK'*
 't_KL'	term.txt	/*'t_KL'*
-'t_Ms'	term.txt	/*'t_Ms'*
 't_PE'	term.txt	/*'t_PE'*
 't_PS'	term.txt	/*'t_PS'*
 't_RB'	term.txt	/*'t_RB'*
@@ -6227,6 +6226,7 @@ assert_report()	testing.txt	/*assert_report()*
 assert_true()	testing.txt	/*assert_true()*
 assumptions-C-compiler	develop.txt	/*assumptions-C-compiler*
 assumptions-makefiles	develop.txt	/*assumptions-makefiles*
+assumptions-prototypes	develop.txt	/*assumptions-prototypes*
 assumptions-variables	develop.txt	/*assumptions-variables*
 astro.vim	syntax.txt	/*astro.vim*
 asy.vim	syntax.txt	/*asy.vim*
@@ -6673,7 +6673,7 @@ cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
 cmdcomplete_info()	builtin.txt	/*cmdcomplete_info()*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*
-cmdline-autocompletion	builtin.txt	/*cmdline-autocompletion*
+cmdline-autocompletion	cmdline.txt	/*cmdline-autocompletion*
 cmdline-changed	version5.txt	/*cmdline-changed*
 cmdline-completion	cmdline.txt	/*cmdline-completion*
 cmdline-editing	cmdline.txt	/*cmdline-editing*
@@ -6718,6 +6718,7 @@ compiler-dotnet	quickfix.txt	/*compiler-dotnet*
 compiler-gcc	quickfix.txt	/*compiler-gcc*
 compiler-gnat	ft_ada.txt	/*compiler-gnat*
 compiler-groff	quickfix.txt	/*compiler-groff*
+compiler-hare	ft_hare.txt	/*compiler-hare*
 compiler-hpada	ft_ada.txt	/*compiler-hpada*
 compiler-javac	quickfix.txt	/*compiler-javac*
 compiler-make	quickfix.txt	/*compiler-make*
@@ -6969,6 +6970,7 @@ delete-menus	gui.txt	/*delete-menus*
 deletebufline()	builtin.txt	/*deletebufline()*
 deleting	change.txt	/*deleting*
 demoserver.py	channel.txt	/*demoserver.py*
+deprecated-features	develop.txt	/*deprecated-features*
 design-assumptions	develop.txt	/*design-assumptions*
 design-compatible	develop.txt	/*design-compatible*
 design-decisions	develop.txt	/*design-decisions*
@@ -6979,6 +6981,7 @@ design-improved	develop.txt	/*design-improved*
 design-maintain	develop.txt	/*design-maintain*
 design-multi-platform	develop.txt	/*design-multi-platform*
 design-not	develop.txt	/*design-not*
+design-policy	develop.txt	/*design-policy*
 design-speed-size	develop.txt	/*design-speed-size*
 desktop.vim	syntax.txt	/*desktop.vim*
 develop-spell	develop.txt	/*develop-spell*
@@ -7506,6 +7509,10 @@ ft-gprof-plugin	filetype.txt	/*ft-gprof-plugin*
 ft-groff-syntax	syntax.txt	/*ft-groff-syntax*
 ft-gsp-syntax	syntax.txt	/*ft-gsp-syntax*
 ft-hare	filetype.txt	/*ft-hare*
+ft-hare-indent	ft_hare.txt	/*ft-hare-indent*
+ft-hare-intro	ft_hare.txt	/*ft-hare-intro*
+ft-hare-plugin	ft_hare.txt	/*ft-hare-plugin*
+ft-haredoc-plugin	ft_hare.txt	/*ft-haredoc-plugin*
 ft-haskell-syntax	syntax.txt	/*ft-haskell-syntax*
 ft-help-omni	helphelp.txt	/*ft-help-omni*
 ft-html-indent	indent.txt	/*ft-html-indent*
@@ -7673,6 +7680,7 @@ function-range-example	userfunc.txt	/*function-range-example*
 function-search-undo	userfunc.txt	/*function-search-undo*
 function_key	intro.txt	/*function_key*
 functions	eval.txt	/*functions*
+fuzzy-file-picker	cmdline.txt	/*fuzzy-file-picker*
 fuzzy-matching	pattern.txt	/*fuzzy-matching*
 fvwm.vim	syntax.txt	/*fvwm.vim*
 fvwm2rc	syntax.txt	/*fvwm2rc*
@@ -7757,9 +7765,12 @@ g:gnat.Set_Project_File()	ft_ada.txt	/*g:gnat.Set_Project_File()*
 g:gnat.Tags()	ft_ada.txt	/*g:gnat.Tags()*
 g:gnat.Tags_Command	ft_ada.txt	/*g:gnat.Tags_Command*
 g:gzip_exec	pi_gzip.txt	/*g:gzip_exec*
+g:hare_indent_case	ft_hare.txt	/*g:hare_indent_case*
+g:hare_indent_match_switch	ft_hare.txt	/*g:hare_indent_match_switch*
+g:hare_makeprg_params	ft_hare.txt	/*g:hare_makeprg_params*
 g:hare_recommended_style	ft_hare.txt	/*g:hare_recommended_style*
 g:hare_space_error	ft_hare.txt	/*g:hare_space_error*
-g:haredoc_search_depth	ft_hare.txt	/*g:haredoc_search_depth*
+g:hare_symbol_operators	ft_hare.txt	/*g:hare_symbol_operators*
 g:help_example_languages	helphelp.txt	/*g:help_example_languages*
 g:html_charset_override	syntax.txt	/*g:html_charset_override*
 g:html_diff_one_file	syntax.txt	/*g:html_diff_one_file*
@@ -8250,9 +8261,7 @@ haiku-vimdir	os_haiku.txt	/*haiku-vimdir*
 hangul	hangulin.txt	/*hangul*
 hangulin.txt	hangulin.txt	/*hangulin.txt*
 hare	ft_hare.txt	/*hare*
-hare-intro	ft_hare.txt	/*hare-intro*
-hare-plugin	ft_hare.txt	/*hare-plugin*
-hare-settings	ft_hare.txt	/*hare-settings*
+hare.vim	ft_hare.txt	/*hare.vim*
 has()	builtin.txt	/*has()*
 has-patch	builtin.txt	/*has-patch*
 has-python	if_pyth.txt	/*has-python*
@@ -8364,6 +8373,7 @@ hl-PmenuSel	syntax.txt	/*hl-PmenuSel*
 hl-PmenuThumb	syntax.txt	/*hl-PmenuThumb*
 hl-PopupNotification	syntax.txt	/*hl-PopupNotification*
 hl-PopupSelected	syntax.txt	/*hl-PopupSelected*
+hl-PreInsert	syntax.txt	/*hl-PreInsert*
 hl-Question	syntax.txt	/*hl-Question*
 hl-QuickFixLine	syntax.txt	/*hl-QuickFixLine*
 hl-Scrollbar	syntax.txt	/*hl-Scrollbar*
@@ -8625,6 +8635,7 @@ inputrestore()	builtin.txt	/*inputrestore()*
 inputsave()	builtin.txt	/*inputsave()*
 inputsecret()	builtin.txt	/*inputsecret()*
 ins-autocompletion	insert.txt	/*ins-autocompletion*
+ins-autocompletion-example	insert.txt	/*ins-autocompletion-example*
 ins-completion	insert.txt	/*ins-completion*
 ins-completion-menu	insert.txt	/*ins-completion-menu*
 ins-expandtab	insert.txt	/*ins-expandtab*
@@ -8819,6 +8830,7 @@ listener_remove()	builtin.txt	/*listener_remove()*
 lite.vim	syntax.txt	/*lite.vim*
 literal-Dict	eval.txt	/*literal-Dict*
 literal-string	eval.txt	/*literal-string*
+live-grep	cmdline.txt	/*live-grep*
 lnum-variable	eval.txt	/*lnum-variable*
 load-plugins	starting.txt	/*load-plugins*
 load-vim-script	repeat.txt	/*load-vim-script*
@@ -9367,6 +9379,7 @@ new-diff-mode	version6.txt	/*new-diff-mode*
 new-encryption	version5.txt	/*new-encryption*
 new-evim	version6.txt	/*new-evim*
 new-ex-commands-5.2	version5.txt	/*new-ex-commands-5.2*
+new-features	develop.txt	/*new-features*
 new-file-browser	version6.txt	/*new-file-browser*
 new-file-writing	version6.txt	/*new-file-writing*
 new-filetype	filetype.txt	/*new-filetype*
@@ -10609,7 +10622,6 @@ t_KI	term.txt	/*t_KI*
 t_KJ	term.txt	/*t_KJ*
 t_KK	term.txt	/*t_KK*
 t_KL	term.txt	/*t_KL*
-t_Ms	term.txt	/*t_Ms*
 t_PE	term.txt	/*t_PE*
 t_PS	term.txt	/*t_PS*
 t_RB	term.txt	/*t_RB*
@@ -10893,6 +10905,7 @@ term_setrestore()	terminal.txt	/*term_setrestore()*
 term_setsize()	terminal.txt	/*term_setsize()*
 term_start()	terminal.txt	/*term_start()*
 term_wait()	terminal.txt	/*term_wait()*
+termblinkresp-variable	eval.txt	/*termblinkresp-variable*
 termcap	term.txt	/*termcap*
 termcap-changed	version4.txt	/*termcap-changed*
 termcap-colors	term.txt	/*termcap-colors*
@@ -10900,6 +10913,7 @@ termcap-cursor-color	term.txt	/*termcap-cursor-color*
 termcap-cursor-shape	term.txt	/*termcap-cursor-shape*
 termcap-options	term.txt	/*termcap-options*
 termcap-title	term.txt	/*termcap-title*
+termda1-variable	eval.txt	/*termda1-variable*
 termdebug-commands	terminal.txt	/*termdebug-commands*
 termdebug-communication	terminal.txt	/*termdebug-communication*
 termdebug-customizing	terminal.txt	/*termdebug-customizing*
@@ -10963,7 +10977,12 @@ terminal-window	terminal.txt	/*terminal-window*
 terminal.txt	terminal.txt	/*terminal.txt*
 terminalprops()	builtin.txt	/*terminalprops()*
 terminfo	term.txt	/*terminfo*
+termosc-variable	eval.txt	/*termosc-variable*
+termrbgresp-variable	eval.txt	/*termrbgresp-variable*
 termresponse-variable	eval.txt	/*termresponse-variable*
+termrfgresp-variable	eval.txt	/*termrfgresp-variable*
+termstyleresp-variable	eval.txt	/*termstyleresp-variable*
+termu7resp-variable	eval.txt	/*termu7resp-variable*
 ternary	eval.txt	/*ternary*
 test-functions	usr_41.txt	/*test-functions*
 test-functions-details	testing.txt	/*test-functions-details*
@@ -11669,6 +11688,7 @@ wayland-seat	wayland.txt	/*wayland-seat*
 wayland-selections	wayland.txt	/*wayland-selections*
 wayland-useful	wayland.txt	/*wayland-useful*
 wayland.txt	wayland.txt	/*wayland.txt*
+wayland_display-variable	eval.txt	/*wayland_display-variable*
 wdl-syntax	syntax.txt	/*wdl-syntax*
 wdl.vim	syntax.txt	/*wdl.vim*
 white-space	pattern.txt	/*white-space*

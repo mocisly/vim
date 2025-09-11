@@ -192,7 +192,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     conaryrecipe: ['file.recipe'],
     conf: ['auto.master', 'file.conf', 'texdoc.cnf', '.x11vncrc', '.chktexrc', '.ripgreprc', 'ripgreprc', 'file.ctags'],
     config: ['/etc/hostname.file', 'any/etc/hostname.file', 'configure.in', 'configure.ac', 'file.at', 'aclocal.m4'],
-    confini: ['pacman.conf', 'paru.conf', 'mpv.conf', 'any/.aws/config', 'any/.aws/credentials', 'file.nmconnection',
+    confini: ['pacman.conf', 'paru.conf', 'mpv.conf', 'any/.aws/config', 'any/.aws/credentials', 'any/.aws/cli/alias', 'file.nmconnection',
               'any/.gnuradio/grc.conf', 'any/gnuradio/config.conf', 'any/gnuradio/conf.d/modtool.conf'],
     context: ['tex/context/any/file.tex', 'file.mkii', 'file.mkiv', 'file.mkvi', 'file.mkxl', 'file.mklx'],
     cook: ['file.cook'],
@@ -308,7 +308,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     fstab: ['fstab', 'mtab'],
     func: ['file.fc'],
     fusion: ['file.fusion'],
-    fvwm: ['/.fvwm/file', 'any/.fvwm/file'],
+    fvwm: ['/.fvwm/file', 'any/.fvwm/file', '.fvwmrc', 'foo.fvwmrc', 'fvwmrc.foo', '.fvwm2rc', 'foo.fvwm2rc', 'fvwm2rc.foo', 'foo.fvwm95.hook', 'fvwm95.foo.hook'],
+    fvwm2m4: ['.fvwm2rc.m4', 'foo.fvwm2rc.m4', 'fvwm2rc.foo.m4'],
     gdb: ['.gdbinit', 'gdbinit', '.cuda-gdbinit', 'cuda-gdbinit', 'file.gdb', '.config/gdbearlyinit', '.gdbearlyinit'],
     gdmo: ['file.mo', 'file.gdmo'],
     gdresource: ['file.tscn', 'file.tres'],
@@ -822,7 +823,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     tal: ['file.tal'],
     taskdata: ['pending.data', 'completed.data', 'undo.data'],
     taskedit: ['file.task'],
-    tcl: ['file.tcl', 'file.tm', 'file.tk', 'file.itcl', 'file.itk', 'file.jacl', '.tclshrc', 'tclsh.rc', '.wishrc', '.tclsh-history', '.xsctcmdhistory', '.xsdbcmdhistory'],
+    tcl: ['file.tcl', 'file.tm', 'file.tk', 'file.itcl', 'file.itk', 'file.jacl', '.tclshrc', 'tclsh.rc', '.wishrc', '.tclsh-history',
+          '.xsctcmdhistory', '.xsdbcmdhistory', 'vivado.jou', 'vivado.log'],
     teal: ['file.tl'],
     templ: ['file.templ'],
     template: ['file.tmpl'],
@@ -929,8 +931,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     xsd: ['file.xsd'],
     xslt: ['file.xsl', 'file.xslt'],
     yacc: ['file.yy', 'file.yxx', 'file.y++'],
-    yaml: ['file.yaml', 'file.yml', 'file.eyaml', 'any/.bundle/config', '.clangd', '.clang-format', '.clang-tidy', 'file.mplstyle', 'matplotlibrc', 'yarn.lock',
-           '/home/user/.kube/config', '.condarc', 'condarc', 'pixi.lock'],
+    yaml: ['file.yaml', 'file.yml', 'file.eyaml', 'file.kyaml', 'file.kyml', 'any/.bundle/config', '.clangd', '.clang-format', '.clang-tidy', 'file.mplstyle', 'matplotlibrc', 'yarn.lock',
+           '/home/user/.kube/config', '/home/user/.kube/kuberc', '.condarc', 'condarc', 'pixi.lock'],
     yang: ['file.yang'],
     yuck: ['file.yuck'],
     z8a: ['file.z8a'],
@@ -1706,6 +1708,7 @@ endfunc
 
 func Test_haredoc_file()
   filetype on
+
   call assert_true(mkdir('foo/bar', 'pR'))
 
   call writefile([], 'README', 'D')
@@ -1713,28 +1716,37 @@ func Test_haredoc_file()
   call assert_notequal('haredoc', &filetype)
   bwipe!
 
+  let g:filetype_haredoc = 3
+  call writefile([], 'foo/bar/bar.ha', 'D')
+  split README
+  call assert_equal('haredoc', &filetype)
+  bwipe!
+
+  let g:filetype_haredoc = 2
+  split README
+  call assert_notequal('haredoc', &filetype)
+  bwipe!
+
+  call writefile([], 'foo/foo.ha', 'D')
+  split README
+  call assert_equal('haredoc', &filetype)
+  bwipe!
+
   let g:filetype_haredoc = 1
   split README
   call assert_notequal('haredoc', &filetype)
   bwipe!
 
-  call writefile([], 'foo/quux.ha')
+  call writefile([], 'main.ha', 'D')
   split README
   call assert_equal('haredoc', &filetype)
   bwipe!
-  call delete('foo/quux.ha')
 
-  call writefile([], 'foo/bar/baz.ha', 'D')
+  let g:filetype_haredoc = 0
   split README
   call assert_notequal('haredoc', &filetype)
   bwipe!
-
-  let g:haredoc_search_depth = 2
-  split README
-  call assert_equal('haredoc', &filetype)
-  bwipe!
   unlet g:filetype_haredoc
-  unlet g:haredoc_search_depth
 
   filetype off
 endfunc
@@ -2688,6 +2700,21 @@ func Test_inc_file()
   bwipe!
 
   call writefile(['RDEPENDS_${PN} += "bar"'], 'Xfile.inc')
+  split Xfile.inc
+  call assert_equal('bitbake', &filetype)
+  bwipe!
+
+  call writefile(['PREFERRED_PROVIDER_virtual/kernel = "linux-yocto"'], 'Xfile.inc')
+  split Xfile.inc
+  call assert_equal('bitbake', &filetype)
+  bwipe!
+
+  call writefile(['MACHINEOVERRIDES =. "qemuall:"'], 'Xfile.inc')
+  split Xfile.inc
+  call assert_equal('bitbake', &filetype)
+  bwipe!
+
+  call writefile(['BBPATH .= ":${LAYERDIR}"'], 'Xfile.inc')
   split Xfile.inc
   call assert_equal('bitbake', &filetype)
   bwipe!

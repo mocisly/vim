@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:		The Vim Project <https://github.com/vim/vim>
-" Last Change:		2025 Aug 26
+" Last Change:		2025 Aug 31
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -1377,6 +1377,9 @@ au BufNewFile,BufRead *.ks			setf kscript
 " Kconfig
 au BufNewFile,BufRead Kconfig,Kconfig.debug,Config.in	setf kconfig
 
+" Kyaml
+au BufNewFile,BufRead *.kyaml,*.kyml		setf yaml
+
 " Lace (ISE)
 au BufNewFile,BufRead *.ace,*.ACE		setf lace
 
@@ -1516,7 +1519,7 @@ au BufNewFile,BufRead *.lsl			call dist#ft#FTlsl()
 au BufNewFile,BufRead *.lss			setf lss
 
 " M4
-au BufNewFile,BufRead *.m4                      call dist#ft#FTm4()
+au BufNewFile,BufRead *.m4	call dist#ft#FTm4()
 
 au BufNewFile,BufRead .m4_history		setf m4
 
@@ -1673,7 +1676,9 @@ au BufNewFile,BufRead *.msql			setf msql
 au BufNewFile,BufRead *.mysql,.mysql_history	setf mysql
 
 " Tcl Shell RC file
-au BufNewFile,BufRead tclsh.rc			setf tcl
+" Vivado journal file records REPL input in tcl syntax
+" Vivado log file records REPL input in tcl syntax and output
+au BufNewFile,BufRead tclsh.rc,vivado*.{jou,log}	setf tcl
 
 " M$ Resource files
 " /etc/Muttrc.d/file.rc is muttrc
@@ -1832,7 +1837,7 @@ au BufNewFile,BufRead pf.conf				setf pf
 
 " ini style config files, using # comments
 au BufNewFile,BufRead pacman.conf,mpv.conf		setf confini
-au BufNewFile,BufRead */.aws/config,*/.aws/credentials	setf confini
+au BufNewFile,BufRead */.aws/config,*/.aws/credentials,*/.aws/cli/alias	setf confini
 au BufNewFile,BufRead *.nmconnection			setf confini
 au BufNewFile,BufRead paru.conf				setf confini
 au BufNewFile,BufRead */{,.}gnuradio/*.conf		setf confini
@@ -3061,7 +3066,7 @@ au BufNewFile,BufRead *.y			call dist#ft#FTy()
 
 " Yaml
 au BufNewFile,BufRead *.yaml,*.yml,*.eyaml		setf yaml
-au BufNewFile,BufRead */.kube/config	setf yaml
+au BufNewFile,BufRead */.kube/config,*/.kube/kuberc	setf yaml
 
 " Raml
 au BufNewFile,BufRead *.raml			setf raml
@@ -3187,11 +3192,7 @@ au BufNewFile,BufRead */.fvwm/*			call s:StarSetf('fvwm')
 au BufNewFile,BufRead *fvwmrc*,*fvwm95*.hook
 	\ let b:fvwm_version = 1 | call s:StarSetf('fvwm')
 au BufNewFile,BufRead *fvwm2rc*
-	\ if expand("<afile>:e") == "m4"
-	\|  call s:StarSetf('fvwm2m4')
-	\|else
-	\|  let b:fvwm_version = 2 | call s:StarSetf('fvwm')
-	\|endif
+	\ let b:fvwm_version = 2 | call s:StarSetf('fvwm')
 
 " Gedcom
 au BufNewFile,BufRead */tmp/lltmp*		call s:StarSetf('gedcom')

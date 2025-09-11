@@ -40,6 +40,22 @@
 #  error configure did not run properly.  Check auto/config.log.
 # endif
 
+/*
+ * NeXTSTEP / OPENSTEP support deprecation
+ *
+ * NeXT hardware was discontinued in 1993, and the last OPENSTEP release
+ * (4.2) shipped in 1996–1997. No known users remain today.
+ *
+ * To simplify maintenance, NeXT support is formally deprecated. If you hit
+ * this error, please report it to the Vim maintainers.
+ *
+ * This guard will be removed once the remaining NeXT-specific code paths
+ * are deleted in a future release.
+ */
+#if defined(NeXT) || defined(__NeXT__)
+# error "NeXTSTEP / OPENSTEP support has been deprecated."
+#endif
+
 # if (defined(__linux__) && !defined(__ANDROID__)) || defined(__CYGWIN__) || defined(__GNU__)
 // Needed for strptime().  Needs to be done early, since header files can
 // include other header files and end up including time.h, where these symbols
@@ -1571,6 +1587,7 @@ typedef enum
     , HLF_TPL	    // tabpanel
     , HLF_TPLS	    // tabpanel selected
     , HLF_TPLF	    // tabpanel filler
+    , HLF_PRI	    // "preinsert" in 'completeopt'
     , HLF_COUNT	    // MUST be the last one
 } hlf_T;
 
@@ -1583,7 +1600,7 @@ typedef enum
 		  '+', '=', 'k', '<','[', ']', '{', '}', 'x', 'X', \
 		  '*', '#', '_', '!', '.', 'o', 'q', \
 		  'z', 'Z', 'g', \
-		  '%', '^', '&' }
+		  '%', '^', '&', 'I'}
 
 /*
  * Values for behaviour in spell_move_to
