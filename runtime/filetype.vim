@@ -398,6 +398,9 @@ au BufNewFile,BufRead *.ck			setf chuck
 " Comshare Dimension Definition Language
 au BufNewFile,BufRead *.cdl			setf cdl
 
+" Codeowners
+au BufNewFile,BufRead CODEOWNERS		setf codeowners
+
 " Conary Recipe
 au BufNewFile,BufRead *.recipe			setf conaryrecipe
 
@@ -626,6 +629,9 @@ au BufNewFile,BufRead lynx.cfg			setf lynx
 
 " LyRiCs
 au BufNewFile,BufRead *.lrc			setf lyrics
+
+" Mamba configuration file
+au BufNewFile,BufRead .mambarc,mambarc		setf yaml
 
 " MLIR
 au BufNewFile,BufRead *.mlir			setf mlir
@@ -1339,6 +1345,9 @@ au BufNewFile,BufRead *.jl			setf julia
 
 " Just
 au BufNewFile,BufRead \c{,*.}justfile,\c*.just setf just
+
+" Kitty
+au BufNewFile,BufRead kitty.conf,*/kitty/*.conf setf kitty
 
 " KAREL
 au BufNewFile,BufRead *.kl setf karel

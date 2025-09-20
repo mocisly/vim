@@ -2424,6 +2424,10 @@ ins_compl_bs(void)
 	return K_BS;
     }
 
+    // Clear selection if a menu item is currently selected in autocompletion
+    if (compl_autocomplete && compl_first_match)
+	compl_shown_match = compl_first_match;
+
     ins_compl_new_leader();
     if (compl_shown_match != NULL)
 	// Make sure current match is not a hidden item.
@@ -2513,7 +2517,7 @@ ins_compl_new_leader(void)
 		    && compl_first_match)
 	    {
 		compl_shown_match = compl_first_match;
-		if (compl_shows_dir_forward())
+		if (compl_shows_dir_forward() && !compl_autocomplete)
 		    compl_shown_match = compl_first_match->cp_next;
 	    }
 	}
@@ -3447,7 +3451,7 @@ set_cpt_callbacks(optset_T *args)
 	}
     }
 
-    if (!local) // ':set' used insted of ':setlocal'
+    if (!local) // ':set' used instead of ':setlocal'
 	// Cache the callback array
 	if (copy_cpt_callbacks(&cpt_cb, &cpt_cb_count, curbuf->b_p_cpt_cb,
 		    curbuf->b_p_cpt_count) != OK)
@@ -5857,12 +5861,13 @@ find_common_prefix(size_t *prefix_len, int curbuf_only)
 	    if (!match_limit_exceeded && (!curbuf_only
 			|| cpt_sources_array[cur_source].cs_flag == '.'))
 	    {
-		if (first == NULL)
+		if (first == NULL && STRNCMP(ins_compl_leader(),
+			    compl->cp_str.string, ins_compl_leader_len()) == 0)
 		{
 		    first = compl->cp_str.string;
 		    len = (int)STRLEN(first);
 		}
-		else
+		else if (first != NULL)
 		{
 		    int j = 0;  // count in bytes
 		    char_u *s1 = first;
@@ -5890,7 +5895,7 @@ find_common_prefix(size_t *prefix_len, int curbuf_only)
 
     vim_free(match_count);
 
-    if (len > get_compl_len())
+    if (len > (int)ins_compl_leader_len())
     {
 	*prefix_len = (size_t)len;
 	return first;
@@ -6002,12 +6007,15 @@ ins_compl_show_filename(void)
 	    MB_PTR_ADV(s);
 	}
     }
-    msg_hist_off = TRUE;
-    vim_snprintf((char *)IObuff, IOSIZE, "%s %s%s", lead,
-	    s > compl_shown_match->cp_fname ? "<" : "", s);
-    msg((char *)IObuff);
-    msg_hist_off = FALSE;
-    redraw_cmdline = FALSE;	    // don't overwrite!
+    if (!compl_autocomplete)
+    {
+	msg_hist_off = TRUE;
+	vim_snprintf((char *)IObuff, IOSIZE, "%s %s%s", lead,
+		s > compl_shown_match->cp_fname ? "<" : "", s);
+	msg((char *)IObuff);
+	msg_hist_off = FALSE;
+	redraw_cmdline = FALSE;	    // don't overwrite!
+    }
 }
 
 /*
