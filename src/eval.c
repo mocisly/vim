@@ -22,6 +22,7 @@
 
 #define NAMESPACE_CHAR	(char_u *)"abglstvw"
 
+static int eval0_simple_funccal(char_u *arg, typval_T *rettv, exarg_T *eap, evalarg_T *evalarg);
 static int eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
@@ -2222,7 +2223,8 @@ get_lval(
 		lp->ll_type = parse_type(&tp,
 			       &SCRIPT_ITEM(current_sctx.sc_sid)->sn_type_list,
 			       NULL, NULL, !quiet);
-		if (lp->ll_type == NULL && !quiet)
+		if (!quiet && (lp->ll_type == NULL
+			    || !valid_declaration_type(lp->ll_type)))
 		    return NULL;
 		lp->ll_name_end = tp;
 	    }
@@ -3438,7 +3440,7 @@ may_call_simple_func(
  * Handle zero level expression with optimization for a simple function call.
  * Same arguments and return value as eval0().
  */
-    int
+    static int
 eval0_simple_funccal(
     char_u	*arg,
     typval_T	*rettv,

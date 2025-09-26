@@ -1058,6 +1058,24 @@ ins_compl_insert_bytes(char_u *p, int len)
 }
 
 /*
+ * Get current completion leader
+ */
+    char_u *
+ins_compl_leader(void)
+{
+    return compl_leader.string != NULL ? compl_leader.string : compl_orig_text.string;
+}
+
+/*
+ * Get current completion leader length
+ */
+    static size_t
+ins_compl_leader_len(void)
+{
+    return compl_leader.string != NULL ? compl_leader.length : compl_orig_text.length;
+}
+
+/*
  * Checks if the column is within the currently inserted completion text
  * column range. If it is, it returns a special highlight attribute.
  * -1 means normal item.
@@ -1828,24 +1846,6 @@ ins_compl_show_pum(void)
 #define DICT_EXACT	(2)	// "dict" is the exact name of a file
 
 /*
- * Get current completion leader
- */
-    char_u *
-ins_compl_leader(void)
-{
-    return compl_leader.string != NULL ? compl_leader.string : compl_orig_text.string;
-}
-
-/*
- * Get current completion leader length
- */
-    size_t
-ins_compl_leader_len(void)
-{
-    return compl_leader.string != NULL ? compl_leader.length : compl_orig_text.length;
-}
-
-/*
  * Add any identifiers that match the given pattern "pat" in the list of
  * dictionary files "dict_start" to the list of completions.
  */
@@ -2375,7 +2375,7 @@ ins_compl_preinsert_effect(void)
  * Returns TRUE if autocompletion is active.
  */
     int
-ins_compl_has_autocomplete(void)
+ins_compl_autocomplete_enabled(void)
 {
     return compl_autocomplete;
 }
@@ -2450,6 +2450,16 @@ ins_compl_need_restart(void)
 }
 
 /*
+ * Return TRUE if 'autocomplete' option is set
+ */
+    int
+ins_compl_has_autocomplete(void)
+{
+    // Use buffer-local setting if defined (>= 0), otherwise use global
+    return curbuf->b_p_ac >= 0 ? curbuf->b_p_ac : p_ac;
+}
+
+/*
  * Called after changing "compl_leader".
  * Show the popup menu with a different set of matches.
  * May also search for matches again if the previous search was interrupted.
@@ -2498,8 +2508,7 @@ ins_compl_new_leader(void)
 	save_w_wrow = curwin->w_wrow;
 	save_w_leftcol = curwin->w_leftcol;
 	compl_restarting = TRUE;
-	if (p_ac)
-	    compl_autocomplete = TRUE;
+	compl_autocomplete = ins_compl_has_autocomplete();
 	if (ins_complete(Ctrl_N, FALSE) == FAIL)
 	    compl_cont_status = 0;
 	compl_restarting = FALSE;
@@ -5005,8 +5014,9 @@ get_next_default_completion(ins_compl_next_state_T *st, pos_T *start_pos)
     int		looped_around = FALSE;
     char_u	*ptr = NULL;
     int		len = 0;
-    int		in_fuzzy_collect = (cfc_has_mode() && compl_length > 0)
-	|| ((get_cot_flags() & COT_FUZZY) && compl_autocomplete);
+    int		in_fuzzy_collect = !compl_status_adding()
+		&& ((cfc_has_mode() && compl_length > 0)
+		    || ((get_cot_flags() & COT_FUZZY) && compl_autocomplete));
     char_u	*leader = ins_compl_leader();
     int		score = FUZZY_SCORE_NONE;
     int		in_curbuf = st->ins_buf == curbuf;
@@ -6305,7 +6315,8 @@ ins_compl_next(
 
     // Enter will select a match when the match wasn't inserted and the popup
     // menu is visible.
-    if (compl_no_insert && !started && compl_selected_item != -1)
+    if (compl_no_insert && !started
+				 && !match_at_original_text(compl_shown_match))
 	compl_enter_selects = TRUE;
     else
 	compl_enter_selects = !insert_match && compl_match_array != NULL;
@@ -7113,11 +7124,6 @@ ins_compl_start(void)
 	    compl_length = 0;
 	    compl_col = curwin->w_cursor.col;
 	    compl_lnum = curwin->w_cursor.lnum;
-	}
-	else if (ctrl_x_mode_normal() && cfc_has_mode())
-	{
-	    compl_startpos = curwin->w_cursor;
-	    compl_cont_status &= CONT_S_IPOS;
 	}
     }
     else
