@@ -159,8 +159,6 @@ typedef void (*sighandler_T) SIGPROTOARG;
 #endif
 
 
-#ifndef PROTO
-
 #ifdef VMS
 # include <unixio.h>
 # include <unixlib.h>
@@ -197,8 +195,6 @@ typedef void (*sighandler_T) SIGPROTOARG;
 #ifdef HAVE_FLOCK
 # include <sys/file.h>
 #endif
-
-#endif // PROTO
 
 #ifdef VMS
 typedef struct dsc$descriptor   DESC;
@@ -363,8 +359,8 @@ typedef struct dsc$descriptor   DESC;
 #  ifdef RUNTIME_GLOBAL
 #   ifdef RUNTIME_GLOBAL_AFTER
 #    define DFLT_RUNTIMEPATH	"~/.vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER ",~/.vim/after"
-#    define XDG_RUNTIMEPATH	"$XDG_CONFIG_HOME/vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER "/after,$XDG_CONFIG_HOME/vim/after"
-#    define XDG_RUNTIMEPATH_FB	"~/.config/vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER "/after,~/.config/vim/after"
+#    define XDG_RUNTIMEPATH	"$XDG_CONFIG_HOME/vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER ",$XDG_CONFIG_HOME/vim/after"
+#    define XDG_RUNTIMEPATH_FB	"~/.config/vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER ",~/.config/vim/after"
 #    define CLEAN_RUNTIMEPATH	RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL_AFTER
 #   else
 #    define DFLT_RUNTIMEPATH	"~/.vim," RUNTIME_GLOBAL ",$VIMRUNTIME," RUNTIME_GLOBAL "/after,~/.vim/after"

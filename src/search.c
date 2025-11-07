@@ -309,7 +309,7 @@ restore_search_patterns(void)
 #endif
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_search_patterns(void)
 {
@@ -492,7 +492,7 @@ pat_has_uppercase(char_u *pat)
     return FALSE;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
     char_u *
 last_csearch(void)
 {
@@ -1478,10 +1478,11 @@ do_search(
 		// msg_strtrunc() will shorten in the middle.
 		if (msg_scrolled != 0 && !cmd_silent)
 		    // Use all the columns.
-		    msgbufsize = (int)(Rows - msg_row) * Columns - 1;
+		    msgbufsize = (int)(Rows - msg_row) * cmdline_width - 1;
 		else
 		    // Use up to 'showcmd' column.
-		    msgbufsize = (int)(Rows - msg_row - 1) * Columns + sc_col - 1;
+		    msgbufsize = (int)(Rows - msg_row - 1) * cmdline_width
+			+ sc_col - 1;
 		if (msgbufsize < plen + off_len + SEARCH_STAT_BUF_LEN + 3)
 		    msgbufsize = plen + off_len + SEARCH_STAT_BUF_LEN + 3;
 	    }
@@ -3366,7 +3367,7 @@ update_search_stat(
     p_ws = save_ws;
 }
 
-#if defined(FEAT_FIND_ID) || defined(PROTO)
+#if defined(FEAT_FIND_ID)
 
 /*
  * Get line "lnum" and copy it into "buf[LSIZE]".

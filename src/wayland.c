@@ -738,7 +738,7 @@ wayland_prepare_read(void)
 }
 
 /*
- * Catch up on any qeueued events
+ * Catch up on any queued events
  */
     int
 wayland_update(void)
@@ -748,7 +748,7 @@ wayland_update(void)
     return vwl_connection_roundtrip(wayland_ct);
 }
 
-#ifndef HAVE_SELECT
+#if !defined(HAVE_SELECT)
 
     void
 wayland_poll_check(int revents)
@@ -758,11 +758,13 @@ wayland_poll_check(int revents)
 
     is_reading = false;
     if (revents & POLLIN)
+    {
 	if (wl_display_read_events(wayland_ct->display.proxy) != -1)
 	{
 	    wl_display_dispatch_pending(wayland_ct->display.proxy);
 	    return;
 	}
+    }
     else if (revents & (POLLHUP | POLLERR))
 	wl_display_cancel_read(wayland_ct->display.proxy);
     else
@@ -774,7 +776,8 @@ wayland_poll_check(int revents)
     wayland_restore_connection();
 }
 
-#else // ifdef HAVE_SELECT
+#endif
+#if defined(HAVE_SELECT)
 
     void
 wayland_select_check(bool is_set)
@@ -797,7 +800,7 @@ wayland_select_check(bool is_set)
 	wl_display_cancel_read(wayland_ct->display.proxy);
 }
 
-#endif // !HAVE_SELECT
+#endif
 
 /*
  * Disconnect then reconnect Wayland connection, and update clipmethod.
@@ -859,11 +862,11 @@ ex_wlrestore(exarg_T *eap)
     choose_clipmethod();
 }
 
-#ifdef FEAT_WAYLAND_CLIPBOARD
+#if defined(FEAT_WAYLAND_CLIPBOARD)
 
 /*
  * Get a suitable data device manager from connection. "supported" should be
- * iniitialized to VWL_DATA_PROTOCOL_NONE beforehand. Returns NULL if there are
+ * initialized to VWL_DATA_PROTOCOL_NONE beforehand. Returns NULL if there are
  * no data device manager available with the required selection.
  */
     vwl_data_device_manager_T *

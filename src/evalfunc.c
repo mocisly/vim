@@ -14,7 +14,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 #ifdef VMS
 # include <float.h>
@@ -2652,9 +2652,11 @@ static const funcentry_T global_functions[] =
     {"popup_settext",	2, 2, FEARG_1,	    arg2_number_string_or_list,
 			ret_void,	    PROP_FUNC(f_popup_settext)},
     {"popup_show",	1, 1, FEARG_1,	    arg1_number,
-			ret_void,	    PROP_FUNC(f_popup_show)},
+			ret_number,	    PROP_FUNC(f_popup_show)},
     {"pow",		2, 2, FEARG_1,	    arg2_float_or_nr,
 			ret_float,	    f_pow},
+    {"preinserted",	0, 0, 0,	    NULL,
+			ret_number_bool,    f_preinserted},
     {"prevnonblank",	1, 1, FEARG_1,	    arg1_lnum,
 			ret_number,	    f_prevnonblank},
     {"printf",		1, 19, FEARG_2,	    arg119_printf,
@@ -4632,7 +4634,7 @@ execute_redir_str(char_u *value, int value_len)
     redir_execute_ga.ga_len += len;
 }
 
-#if defined(FEAT_LUA) || defined(PROTO)
+#if defined(FEAT_LUA)
 /*
  * Get next line from a string containing NL separated lines.
  * Called by do_cmdline() to get the next line.
@@ -9678,7 +9680,7 @@ f_min(typval_T *argvars, typval_T *rettv)
     max_min(argvars, rettv, FALSE);
 }
 
-#if defined(FEAT_MZSCHEME) || defined(PROTO)
+#if defined(FEAT_MZSCHEME)
 /*
  * "mzeval()" function
  */

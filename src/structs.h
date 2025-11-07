@@ -350,6 +350,20 @@ typedef struct
 # define w_p_tws w_onebuf_opt.wo_tws	// 'termwinsize'
 #endif
 
+    // A few options have local flags for P_INSECURE.
+    long_u	wo_wrap_flags;		// flags for 'wrap'
+#define w_p_wrap_flags w_onebuf_opt.wo_wrap_flags
+#ifdef FEAT_STL_OPT
+    long_u	wo_stl_flags;		// flags for 'statusline'
+# define w_p_stl_flags w_onebuf_opt.wo_stl_flags
+#endif
+#ifdef FEAT_EVAL
+    long_u	wo_fde_flags;		// flags for 'foldexpr'
+# define w_p_fde_flags w_onebuf_opt.wo_fde_flags
+    long_u	wo_fdt_flags;		// flags for 'foldtext'
+# define w_p_fdt_flags w_onebuf_opt.wo_fdt_flags
+#endif
+
 #ifdef FEAT_EVAL
     sctx_T	wo_script_ctx[WV_COUNT];	// SCTXs for window-local options
 # define w_p_script_ctx w_onebuf_opt.wo_script_ctx
@@ -945,7 +959,7 @@ typedef struct sign_attrs_S {
     int		sat_priority;
 } sign_attrs_T;
 
-#if defined(FEAT_SIGNS) || defined(PROTO)
+#if defined(FEAT_SIGNS)
 // Macros to get the sign group structure from the group name
 #define SGN_KEY_OFF	offsetof(signgroup_T, sg_name)
 #define HI2SG(hi)	((signgroup_T *)((hi)->hi_key - SGN_KEY_OFF))
@@ -1425,20 +1439,11 @@ typedef long_u hash_T;		// Type for hi_hash
 
 // Use 64-bit Number.
 #ifdef MSWIN
-# ifdef PROTO
-   // workaround for cproto that doesn't recognize __int64
-   typedef long			varnumber_T;
-   typedef unsigned long	uvarnumber_T;
-#  define VARNUM_MIN		LONG_MIN
-#  define VARNUM_MAX		LONG_MAX
-#  define UVARNUM_MAX		ULONG_MAX
-# else
    typedef __int64		varnumber_T;
    typedef unsigned __int64	uvarnumber_T;
-#  define VARNUM_MIN		_I64_MIN
-#  define VARNUM_MAX		_I64_MAX
-#  define UVARNUM_MAX		_UI64_MAX
-# endif
+# define VARNUM_MIN		_I64_MIN
+# define VARNUM_MAX		_I64_MAX
+# define UVARNUM_MAX		_UI64_MAX
 #elif defined(HAVE_NO_LONG_LONG)
 # if defined(HAVE_STDINT_H)
    typedef int64_t		varnumber_T;
@@ -1878,7 +1883,7 @@ typedef enum {
 
 typedef struct svar_S svar_T;
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Info used by a ":for" loop.
  */
@@ -3608,7 +3613,7 @@ struct file_buffer
 }; // file_buffer
 
 
-#if defined(FEAT_DIFF) || defined(PROTO)
+#if defined(FEAT_DIFF)
 /*
  * Stuff for diff mode.
  */
@@ -3899,6 +3904,7 @@ typedef struct
     int	foldopen;
     int	foldclosed;
     int	foldsep;
+    int	foldinner;
     int	diff;
     int	eob;
     int	lastline;
@@ -4048,6 +4054,7 @@ struct window_S
     int		w_popup_border[4];  // popup border top/right/bot/left
     char_u	*w_border_highlight[4];  // popup border highlight
     int		w_border_char[8];   // popup border characters
+    int		w_popup_shadow;     // popup shadow (right and bottom edges)
 
     int		w_popup_leftoff;    // columns left of the screen
     int		w_popup_rightoff;   // columns right of the screen
@@ -4213,14 +4220,6 @@ struct window_S
     // transform a pointer to a "onebuf" option into a "allbuf" option
 #define GLOBAL_WO(p)	((char *)(p) + sizeof(winopt_T))
 
-    // A few options have local flags for P_INSECURE.
-#ifdef FEAT_STL_OPT
-    long_u	w_p_stl_flags;	    // flags for 'statusline'
-#endif
-#ifdef FEAT_EVAL
-    long_u	w_p_fde_flags;	    // flags for 'foldexpr'
-    long_u	w_p_fdt_flags;	    // flags for 'foldtext'
-#endif
 #if defined(FEAT_SIGNS) || defined(FEAT_FOLDING) || defined(FEAT_DIFF)
     int		*w_p_cc_cols;	    // array of columns to highlight or NULL
     char_u	w_p_culopt_flags;   // flags for cursorline highlighting
@@ -5229,7 +5228,7 @@ typedef struct
 #define KEYVALUE_ENTRY(k, v) \
     {(k), {((char_u *)v), STRLEN_LITERAL(v)}}
 
-#if defined(UNIX) || defined(MSWIN) || defined(VMS)
+#if defined(UNIX) || defined(MSWIN) || defined(VMS) || defined(AMIGA)
 // Defined as signed, to return -1 on error
 struct cellsize {
     int cs_xpixel;

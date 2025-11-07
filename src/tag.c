@@ -163,7 +163,7 @@ static callback_T tfu_cb;	    // 'tagfunc' callback function
 // Used instead of NUL to separate tag fields in the growarrays.
 #define TAG_SEP 0x02
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Reads the 'tagfunc' option value and convert that to a callback value.
  * Invoked when the 'tagfunc' option is set. The option value can be a name of
@@ -189,7 +189,7 @@ did_set_tagfunc(optset_T *args UNUSED)
 }
 #endif
 
-# if defined(EXITFREE) || defined(PROTO)
+# if defined(EXITFREE)
     void
 free_tagfunc_option(void)
 {
@@ -199,7 +199,7 @@ free_tagfunc_option(void)
 }
 # endif
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Mark the global 'tagfunc' callback with "copyID" so that it is not garbage
  * collected.
@@ -975,7 +975,7 @@ print_tag_list(
     taglen = (int)(tagp.tagname_end - tagp.tagname + 2);
     if (taglen < 18)
 	taglen = 18;
-    if (taglen > Columns - 25)
+    if (taglen > cmdline_width - 25)
 	taglen = MAXCOL;
     if (msg_col == 0)
 	msg_didout = FALSE;	// overwrite previous message
@@ -1055,7 +1055,7 @@ print_tag_list(
 		attr = HL_ATTR(HLF_CM);
 		while (*p && *p != '\r' && *p != '\n')
 		{
-		    if (msg_col + ptr2cells(p) >= Columns)
+		    if (msg_col + ptr2cells(p) >= cmdline_width)
 		    {
 			msg_putchar('\n');
 			if (got_int)
@@ -1103,7 +1103,7 @@ print_tag_list(
 
 	while (p != command_end)
 	{
-	    if (msg_col + (*p == TAB ? 1 : ptr2cells(p)) > Columns)
+	    if (msg_col + (*p == TAB ? 1 : ptr2cells(p)) > cmdline_width)
 		msg_putchar('\n');
 	    if (got_int)
 		break;
@@ -3279,7 +3279,7 @@ found_tagfile_cb(char_u *fname, void *cookie UNUSED)
     ((char_u **)(tag_fnames.ga_data))[tag_fnames.ga_len++] = tag_fname;
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_tag_stuff(void)
 {
@@ -4330,7 +4330,7 @@ expand_tags(
     return ret;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Add a tag field to the dictionary "dict".
  * Return OK or FAIL.

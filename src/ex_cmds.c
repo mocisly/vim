@@ -1077,7 +1077,7 @@ ex_copy(linenr_T line1, linenr_T line2, linenr_T n)
 
 static char_u	*prevcmd = NULL;	// the previous command
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_prev_shellcmd(void)
 {
@@ -1253,7 +1253,7 @@ do_bang(
 	msg_putchar('!');
 	msg_outtrans(newcmd);
 	msg_clr_eos();
-	windgoto(msg_row, msg_col);
+	windgoto(msg_row, cmdline_col_off + msg_col);
 
 	do_shell(newcmd, 0);
     }
@@ -1404,7 +1404,7 @@ do_filter(
     if (cmd_buf == NULL)
 	goto filterend;
 
-    windgoto((int)Rows - 1, 0);
+    windgoto((int)Rows - 1, cmdline_col_off);
     cursor_on();
 
     /*
@@ -1659,7 +1659,7 @@ do_shell(
     // This windgoto is required for when the '\n' resulted in a "delete line
     // 1" command to the terminal.
     if (!swapping_screen())
-	windgoto(msg_row, msg_col);
+	windgoto(msg_row, cmdline_col_off + msg_col);
     cursor_on();
     (void)call_shell(cmd, SHELL_COOKED | flags);
     did_check_timestamps = FALSE;
@@ -4694,7 +4694,7 @@ ex_substitute(exarg_T *eap)
 			    msg_no_more = FALSE;
 			    msg_scroll = i;
 			    showruler(TRUE);
-			    windgoto(msg_row, msg_col);
+			    windgoto(msg_row, cmdline_col_off + msg_col);
 			    RedrawingDisabled = save_RedrawingDisabled;
 
 #ifdef USE_ON_FLY_SCROLL
@@ -5579,7 +5579,7 @@ set_old_sub(char_u *val)
 }
 #endif // FEAT_VIMINFO
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_old_sub(void)
 {
@@ -5587,7 +5587,7 @@ free_old_sub(void)
 }
 #endif
 
-#if defined(FEAT_QUICKFIX) || defined(PROTO)
+#if defined(FEAT_QUICKFIX)
 /*
  * Set up for a tagpreview.
  * Makes the preview window the current window.
@@ -5871,7 +5871,7 @@ skip_vimgrep_pat_ext(char_u *p, char_u **s, int *flags, char_u **nulp, int *cp)
     return p;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * List v:oldfiles in a nice way.
  */

@@ -1167,7 +1167,7 @@ cmdline_erase_chars(
 	{
 #ifdef FEAT_RIGHTLEFT
 	    if (cmdmsg_rl)
-		msg_col = Columns;
+		msg_col = cmdline_width;
 	    else
 #endif
 		msg_col = 0;
@@ -1375,8 +1375,8 @@ cmdline_left_right_mouse(int c, int *ignore_drag_release)
 	int	i;
 
 	i = cmdline_charsize(ccline.cmdpos);
-	if (mouse_row <= cmdline_row + ccline.cmdspos / Columns
-		&& mouse_col < ccline.cmdspos % Columns + i)
+	if (mouse_row <= cmdline_row + ccline.cmdspos / cmdline_width
+		&& mouse_col < ccline.cmdspos % cmdline_width + i)
 	    break;
 	if (has_mbyte)
 	{
@@ -1871,6 +1871,12 @@ getcmdline_int(
 				// that occurs while typing a command should
 				// cause the command not to be executed.
 
+	if (stuff_empty() && typebuf.tb_len == 0)
+	    // There is no pending input from sources other than user input, so
+	    // Vim is going to wait for the user to type a key.  Consider the
+	    // command line typed even if next key will trigger a mapping.
+	    some_key_typed = TRUE;
+
 	// Trigger SafeState if nothing is pending.
 	may_trigger_safestate(xpc.xp_numfiles <= 0);
 
@@ -2014,7 +2020,7 @@ getcmdline_int(
 #endif
 	    trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
 	    event_cmdlineleavepre_triggered = TRUE;
-#if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
+#if defined(FEAT_SEARCH_EXTRA)
 	    if ((c == ESC || c == Ctrl_C) && (wim_flags[0] & WIM_LIST))
 		set_no_hlsearch(TRUE);
 #endif
@@ -2108,7 +2114,7 @@ getcmdline_int(
 		    goto cmdline_changed;
 		if (!cmd_silent)
 		{
-		    windgoto(msg_row, 0);
+		    windgoto(msg_row, cmdline_col_off);
 		    out_flush();
 		}
 		break;
@@ -2279,7 +2285,7 @@ getcmdline_int(
 		    if (ccline.cmdpos >= ccline.cmdlen)
 			break;
 		    i = cmdline_charsize(ccline.cmdpos);
-		    if (KeyTyped && ccline.cmdspos + i >= Columns * Rows)
+		    if (KeyTyped && ccline.cmdspos + i >= cmdline_width * Rows)
 			break;
 		    ccline.cmdspos += i;
 		    if (has_mbyte)
@@ -2783,7 +2789,7 @@ theend:
     }
 }
 
-#if (defined(FEAT_CRYPT) || defined(FEAT_EVAL)) || defined(PROTO)
+#if defined(FEAT_CRYPT) || defined(FEAT_EVAL)
 /*
  * Get a command line with a prompt.
  * This is prepared to be called recursively from getcmdline() (e.g. by
@@ -3004,8 +3010,8 @@ set_cmdspos_cursor(void)
     set_cmdspos();
     if (KeyTyped)
     {
-	m = Columns * Rows;
-	if (m < 0)	// overflow, Columns or Rows at weird value
+	m = cmdline_width * Rows;
+	if (m < 0)	// overflow, cmdline_width or Rows at weird value
 	    m = MAXCOL;
     }
     else
@@ -3037,7 +3043,7 @@ correct_cmdspos(int idx, int cells)
 {
     if ((*mb_ptr2len)(ccline.cmdbuff + idx) > 1
 		&& (*mb_ptr2cells)(ccline.cmdbuff + idx) > 1
-		&& ccline.cmdspos % Columns + cells > Columns)
+		&& ccline.cmdspos % cmdline_width + cells > cmdline_width)
 	ccline.cmdspos++;
 }
 
@@ -3237,7 +3243,7 @@ redraw:
 		    }
 		}
 		msg_clr_eos();
-		windgoto(msg_row, msg_col);
+		windgoto(msg_row, cmdline_col_off + msg_col);
 		continue;
 	    }
 
@@ -3310,7 +3316,7 @@ redraw:
 	line_ga.ga_len += len;
 	escaped = FALSE;
 
-	windgoto(msg_row, msg_col);
+	windgoto(msg_row, cmdline_col_off + msg_col);
 	pend = (char_u *)(line_ga.ga_data) + line_ga.ga_len;
 
 	// We are done when a NL is entered, but not when it comes after a
@@ -3350,8 +3356,7 @@ cmdline_overstrike(void)
     return ccline.overstrike;
 }
 
-# if defined(MCH_CURSOR_SHAPE) || defined(FEAT_GUI) \
-	 || defined(FEAT_MOUSESHAPE) || defined(PROTO)
+# if defined(MCH_CURSOR_SHAPE) || defined(FEAT_GUI) || defined(FEAT_MOUSESHAPE)
 /*
  * Return TRUE if the cursor is at the end of the cmdline.
  */
@@ -3362,7 +3367,7 @@ cmdline_at_end(void)
 }
 #endif
 
-#if (defined(FEAT_XIM) && (defined(FEAT_GUI_GTK))) || defined(PROTO)
+#if defined(FEAT_XIM) && (defined(FEAT_GUI_GTK))
 /*
  * Return the virtual column number at the current cursor position.
  * This is used by the IM code to obtain the start of the preedit string.
@@ -3427,8 +3432,8 @@ redrawcmd_preedit(void)
 	    cmdpos  += preedit_start_col;
 	}
 
-	msg_row = cmdline_row + (cmdspos / (int)Columns);
-	msg_col = cmdspos % (int)Columns;
+	msg_row = cmdline_row + (cmdspos / cmdline_width);
+	msg_col = cmdspos % cmdline_width;
 	if (msg_row >= Rows)
 	    msg_row = Rows - 1;
 
@@ -3533,10 +3538,10 @@ realloc_cmdbuff(int len)
     return OK;
 }
 
-#if defined(FEAT_ARABIC) || defined(PROTO)
+#if defined(FEAT_ARABIC)
 static char_u	*arshape_buf = NULL;
 
-# if defined(EXITFREE) || defined(PROTO)
+# if defined(EXITFREE)
     void
 free_arshape_buf(void)
 {
@@ -3803,7 +3808,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		msg_col -= i;
 		if (msg_col < 0)
 		{
-		    msg_col += Columns;
+		    msg_col += cmdline_width;
 		    --msg_row;
 		}
 	    }
@@ -3822,8 +3827,8 @@ put_on_cmdline(char_u *str, int len, int redraw)
 	}
 	if (KeyTyped)
 	{
-	    m = Columns * Rows;
-	    if (m < 0)	// overflow, Columns or Rows at weird value
+	    m = cmdline_width * Rows;
+	    if (m < 0)	// overflow, cmdline_width or Rows at weird value
 		m = MAXCOL;
 	}
 	else
@@ -4047,7 +4052,7 @@ redrawcmdprompt(void)
     if (ccline.cmdprompt != NULL)
     {
 	msg_puts_attr((char *)ccline.cmdprompt, ccline.cmdattr);
-	ccline.cmdindent = msg_col + (msg_row - cmdline_row) * Columns;
+	ccline.cmdindent = msg_col + (msg_row - cmdline_row) * cmdline_width;
 	// do the reverse of set_cmdspos()
 	if (ccline.cmdfirstc != NUL)
 	    --ccline.cmdindent;
@@ -4071,7 +4076,7 @@ redrawcmd(void)
     // when 'incsearch' is set there may be no command line while redrawing
     if (ccline.cmdbuff == NULL)
     {
-	windgoto(cmdline_row, 0);
+	windgoto(cmdline_row, cmdline_col_off);
 	msg_clr_eos();
 	return;
     }
@@ -4126,21 +4131,21 @@ cursorcmd(void)
 #ifdef FEAT_RIGHTLEFT
     if (cmdmsg_rl)
     {
-	msg_row = cmdline_row  + (ccline.cmdspos / (int)(Columns - 1));
-	msg_col = (int)Columns - (ccline.cmdspos % (int)(Columns - 1)) - 1;
+	msg_row = cmdline_row  + (ccline.cmdspos / (cmdline_width - 1));
+	msg_col = cmdline_width - (ccline.cmdspos % (cmdline_width - 1)) - 1;
 	if (msg_row <= 0)
 	    msg_row = Rows - 1;
     }
     else
 #endif
     {
-	msg_row = cmdline_row + (ccline.cmdspos / (int)Columns);
-	msg_col = ccline.cmdspos % (int)Columns;
+	msg_row = cmdline_row + (ccline.cmdspos / cmdline_width);
+	msg_col = ccline.cmdspos % cmdline_width;
 	if (msg_row >= Rows)
 	    msg_row = Rows - 1;
     }
 
-    windgoto(msg_row, msg_col);
+    windgoto(msg_row, cmdline_col_off + msg_col);
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
     if (p_imst == IM_ON_THE_SPOT)
 	redrawcmd_preedit();
@@ -4156,13 +4161,13 @@ gotocmdline(int clr)
     msg_start();
 #ifdef FEAT_RIGHTLEFT
     if (cmdmsg_rl)
-	msg_col = Columns - 1;
+	msg_col = cmdline_width - 1;
     else
 #endif
 	msg_col = 0;	    // always start in column 0
     if (clr)		    // clear the bottom line(s)
 	msg_clr_eos();	    // will reset clear_cmdline
-    windgoto(cmdline_row, 0);
+    windgoto(cmdline_row, cmdline_col_off);
 }
 
 /*
@@ -4333,7 +4338,7 @@ get_cmdline_type(void)
     return p->cmdfirstc;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Get the current command line in allocated memory.
  * Only works when the command line is being edited.
@@ -4847,6 +4852,7 @@ open_cmdwin(void)
 
     State = MODE_NORMAL;
     setmouse();
+    clear_showcmd();
 
     // Reset here so it can be set by a CmdwinEnter autocommand.
     cmdwin_result = 0;
@@ -5057,7 +5063,7 @@ script_get(exarg_T *eap UNUSED, char_u *cmd UNUSED)
 #endif
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * This function is used by f_input() and f_inputdialog() functions. The third
  * argument to f_input() specifies the type of completion to use at the

@@ -59,7 +59,7 @@ static void recording_mode(int attr);
 // Ugly global: overrule attribute used by screen_char()
 static int screen_char_attr = 0;
 
-#if defined(FEAT_CONCEAL) || defined(PROTO)
+#if defined(FEAT_CONCEAL)
 /*
  * Return TRUE if the cursor line in window "wp" may be concealed, according
  * to the 'concealcursor' option.
@@ -229,7 +229,7 @@ win_draw_end(
     set_empty_rows(wp, row);
 }
 
-#if defined(FEAT_FOLDING) || defined(PROTO)
+#if defined(FEAT_FOLDING)
 /*
  * Compute the width of the foldcolumn.  Based on 'foldcolumn' and how much
  * space is available for window "wp", minus "col".
@@ -287,6 +287,8 @@ fill_foldcolumn(
 	    symbol = wp->w_fill_chars.foldopen;
 	else if (first_level == 1)
 	    symbol = wp->w_fill_chars.foldsep;
+	else if (wp->w_fill_chars.foldinner != NUL)
+	    symbol = wp->w_fill_chars.foldinner;
 	else if (first_level + i <= 9)
 	    symbol = '0' + first_level + i;
 	else
@@ -369,7 +371,7 @@ char_needs_redraw(int off_from, int off_to, int cols)
     return FALSE;
 }
 
-#if defined(FEAT_TERMINAL) || defined(PROTO)
+#if defined(FEAT_TERMINAL)
 /*
  * Return the index in ScreenLines[] for the current screen line.
  */
@@ -885,7 +887,7 @@ screen_line(
     }
 }
 
-#if defined(FEAT_RIGHTLEFT) || defined(PROTO)
+#if defined(FEAT_RIGHTLEFT)
 /*
  * Mirror text "str" for right-left displaying.
  * Only works for single-byte characters (e.g., numbers).
@@ -1004,7 +1006,7 @@ get_keymap_str(
     return plen;
 }
 
-#if defined(FEAT_STL_OPT) || defined(PROTO)
+#if defined(FEAT_STL_OPT)
 /*
  * Redraw the status line or ruler of window "wp".
  * When "wp" is NULL redraw the tab pages line from 'tabline'.
@@ -1058,7 +1060,7 @@ win_redr_custom(
 	row = statusline_row(wp);
 	fillchar = fillchar_status(&attr, wp);
 	int in_status_line = wp->w_status_height != 0;
-	maxwidth = in_status_line ? wp->w_width : Columns;
+	maxwidth = in_status_line ? wp->w_width : cmdline_width;
 
 	if (draw_ruler)
 	{
@@ -1075,7 +1077,7 @@ win_redr_custom(
 		if (*stl++ != '(')
 		    stl = p_ruf;
 	    }
-	    col = ru_col - (Columns - maxwidth);
+	    col = ru_col - (cmdline_width - maxwidth);
 	    if (col < (maxwidth + 1) / 2)
 		col = (maxwidth + 1) / 2;
 	    maxwidth -= col;
@@ -1101,6 +1103,8 @@ win_redr_custom(
 
 	if (in_status_line)
 	    col += wp->w_wincol;
+	else
+	    col += cmdline_col_off;
     }
 
     if (maxwidth <= 0)
@@ -1185,7 +1189,7 @@ win_redr_custom(
 	    p = tabtab[n].start;
 	    fillchar = tabtab[n].userhl;
 	}
-	while (col < Columns)
+	while (col < firstwin->w_wincol + topframe->fr_width)
 	    TabPageIdxs[col++] = fillchar;
     }
 
@@ -1548,7 +1552,7 @@ screen_puts_len(
     }
 }
 
-#if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
+#if defined(FEAT_SEARCH_EXTRA)
 /*
  * Prepare for 'hlsearch' highlighting.
  */
@@ -2323,14 +2327,16 @@ screen_fill(
 	if (row == Rows - 1)		// overwritten the command line
 	{
 	    redraw_cmdline = TRUE;
-	    if (start_col == 0 && end_col == Columns
+	    if (((start_col == 0 && end_col == Columns)
+			|| (start_col <= cmdline_col_off
+			&& end_col == cmdline_col_off + cmdline_width))
 		    && c1 == ' ' && c2 == ' ' && attr == 0
 #ifdef FEAT_PROP_POPUP
 		    && !popup_overlaps_cmdline()
 #endif
 		    )
 		clear_cmdline = FALSE;	// command line has been cleared
-	    if (start_col == 0)
+	    if (start_col == 0 || start_col == cmdline_col_off)
 		mode_displayed = FALSE; // mode cleared or overwritten
 	}
     }
@@ -2723,8 +2729,8 @@ give_up:
 	    msg_row = Rows - 1;		// put cursor at last row
 	else if (Rows > old_Rows)	// Rows got bigger
 	    msg_row += Rows - old_Rows; // put cursor in same place
-	if (msg_col >= Columns)		// Columns got smaller
-	    msg_col = Columns - 1;	// put cursor at last column
+	if (msg_col >= cmdline_width)	// cmdline_width got smaller
+	    msg_col = cmdline_width - 1;    // put cursor at last cmdline column
     }
 #endif
     clear_TabPageIdxs();
@@ -4095,7 +4101,7 @@ showmode(void)
 	    {
 		// These messages can get long, avoid a wrap in a narrow
 		// window.  Prefer showing edit_submode_extra.
-		length = (Rows - msg_row) * Columns - 3;
+		length = (Rows - msg_row) * cmdline_width - 3;
 		if (edit_submode_extra != NULL)
 		    length -= vim_strsize(edit_submode_extra);
 		if (length > 0)
@@ -4609,8 +4615,8 @@ comp_col(void)
 	if (!p_ru || last_has_status)	    // no need for separating space
 	    ++sc_col;
     }
-    sc_col = Columns - sc_col;
-    ru_col = Columns - ru_col;
+    sc_col = cmdline_width - sc_col;
+    ru_col = cmdline_width - ru_col;
     if (sc_col <= 0)		// screen too narrow, will become a mess
 	sc_col = 1;
     if (ru_col <= 0)
@@ -4620,7 +4626,7 @@ comp_col(void)
 #endif
 }
 
-#if defined(FEAT_LINEBREAK) || defined(PROTO)
+#if defined(FEAT_LINEBREAK)
 /*
  * Return the width of the 'number' and 'relativenumber' column.
  * Caller may need to check if 'number' or 'relativenumber' is set.
@@ -4668,7 +4674,7 @@ number_width(win_T *wp)
 }
 #endif
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Return the current cursor column. This is the actual position on the
  * screen. First column is 0.
@@ -4738,6 +4744,7 @@ static struct charstab filltab[] =
     CHARSTAB_ENTRY(&fill_chars.foldopen,    "foldopen"),
     CHARSTAB_ENTRY(&fill_chars.foldclosed,  "foldclose"),
     CHARSTAB_ENTRY(&fill_chars.foldsep,	    "foldsep"),
+    CHARSTAB_ENTRY(&fill_chars.foldinner,   "foldinner"),
     CHARSTAB_ENTRY(&fill_chars.diff,	    "diff"),
     CHARSTAB_ENTRY(&fill_chars.eob,	    "eob"),
     CHARSTAB_ENTRY(&fill_chars.lastline,    "lastline"),
@@ -4856,6 +4863,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		fill_chars.foldopen = '-';
 		fill_chars.foldclosed = '+';
 		fill_chars.foldsep = '|';
+		fill_chars.foldinner = NUL;
 		fill_chars.diff = '-';
 		fill_chars.eob = '~';
 		fill_chars.lastline = '@';

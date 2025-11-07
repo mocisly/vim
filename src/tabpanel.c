@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_TABPANEL) || defined(PROTO)
+#if defined(FEAT_TABPANEL)
 
 static void do_by_tplmode(int tplmode, int col_start, int col_end,
 	int *pcurtab_row, int *ptabpagenr);
@@ -163,7 +163,7 @@ draw_tabpanel(void)
 	    do_by_tplmode(TPLMODE_REDRAW, VERT_LEN, maxwidth, &curtab_row,
 		    NULL);
 	    // draw vert separator in tabpanel
-	    for (vsrow = 0; vsrow < cmdline_row; vsrow++)
+	    for (vsrow = 0; vsrow < Rows; vsrow++)
 		screen_putchar(curwin->w_fill_chars.tpl_vert, vsrow,
 			topframe->fr_width, vs_attr);
 	}
@@ -175,7 +175,7 @@ draw_tabpanel(void)
 	    do_by_tplmode(TPLMODE_REDRAW, 0, maxwidth - VERT_LEN,
 		    &curtab_row, NULL);
 	    // draw vert separator in tabpanel
-	    for (vsrow = 0; vsrow < cmdline_row; vsrow++)
+	    for (vsrow = 0; vsrow < Rows; vsrow++)
 		screen_putchar(curwin->w_fill_chars.tpl_vert, vsrow,
 			maxwidth - VERT_LEN, vs_attr);
 	}
@@ -465,7 +465,7 @@ starts_with_percent_and_bang(tabpanel_T *pargs)
 
 #ifdef FEAT_EVAL
     // if "fmt" was set insecurely it needs to be evaluated in the sandbox
-    int	use_sandbox = was_set_insecurely(opt_name, opt_scope);
+    int	use_sandbox = was_set_insecurely(curwin, opt_name, opt_scope);
 
     // When the format starts with "%!" then evaluate it as an expression and
     // use the result as the actual format string.
@@ -516,7 +516,7 @@ do_by_tplmode(
     typval_T	v;
     tabpanel_T	args;
 
-    args.maxrow = cmdline_row;
+    args.maxrow = Rows;
     args.offsetrow = 0;
     args.col_start = col_start;
     args.col_end = col_end;

@@ -146,6 +146,8 @@ EXTERN int	vgetc_char INIT(= 0);
  * update_screen().
  */
 EXTERN int	cmdline_row;
+EXTERN int	cmdline_col_off;
+EXTERN int	cmdline_width;
 
 EXTERN int	redraw_cmdline INIT(= FALSE);	// cmdline must be redrawn
 EXTERN int	redraw_mode INIT(= FALSE);	// mode must be redrawn
@@ -248,7 +250,7 @@ EXTERN int	did_wait_return INIT(= FALSE);	// wait_return() was used and
 EXTERN int	need_maketitle INIT(= TRUE); // call maketitle() soon
 
 EXTERN int	quit_more INIT(= FALSE);    // 'q' hit at "--more--" msg
-#if defined(UNIX) || defined(VMS) || defined(MACOS_X)
+#if defined(UNIX) || defined(VMS) || defined(MACOS_X) || defined(AMIGA)
 EXTERN int	newline_on_exit INIT(= FALSE);	// did msg in altern. screen
 EXTERN int	intr_char INIT(= 0);	    // extra interrupt character
 #endif
@@ -1601,7 +1603,7 @@ EXTERN int	listcmd_busy INIT(= FALSE); // set when :argdo, :windo or
 					    // :bufdo is executing
 EXTERN int	need_start_insertmode INIT(= FALSE);
 					    // start insert mode soon
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 EXTERN char_u	last_mode[MODE_MAX_LENGTH] INIT(= "n"); // for ModeChanged event
 #endif
 EXTERN char_u	*last_cmdline INIT(= NULL); // last command line (for ":)
@@ -1869,9 +1871,6 @@ EXTERN Window	clientWindow INIT(= None);
 EXTERN Atom	commProperty INIT(= None);
 EXTERN char_u	*serverDelayedStartName INIT(= NULL);
 # elif defined(MSWIN)
-#  ifdef PROTO
-typedef int HWND;
-#  endif
 EXTERN HWND	clientWindow INIT(= 0);
 # endif
 #endif
@@ -2023,9 +2022,6 @@ EXTERN evalarg_T EVALARG_EVALUATE
 #endif
 
 #ifdef MSWIN
-# ifdef PROTO
-typedef int HINSTANCE;
-# endif
 EXTERN int ctrl_break_was_pressed INIT(= FALSE);
 EXTERN HINSTANCE g_hinst INIT(= NULL);
 #endif
