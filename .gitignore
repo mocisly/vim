@@ -51,6 +51,10 @@ runtime/doc/uganda.nsis.txt
 nsis/icons/*
 /vim90/
 .vscode/
+.vim/
+ctags58/
+build/
+_vimrc
 
 # NetBeans
 nbproject/*

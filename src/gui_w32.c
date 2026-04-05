@@ -64,6 +64,10 @@ static void _OnSysChar_experimental(HWND /*hwnd UNUSED*/, UINT /*cch*/, int /*cR
 static void process_message_usual_key_experimental(UINT /*vk*/, const MSG* /*pmsg*/);
 static int  get_active_modifiers_experimental(void);
 static int  is_experimental_true(void);
+#ifdef FEAT_GUI_MSWIN
+static int  IsSystemDarkMode(void);
+static void SetWindowCaptionColor(HWND hwnd, COLORREF bgColor, COLORREF borderColor);
+#endif
 
 keycode_trans_strategy keycode_trans_strategy_experimental = {
       _OnChar_experimental      // ptr_on_char
@@ -6001,6 +6005,18 @@ gui_mch_init(void)
 #endif
 
 theend:
+     
+#ifdef FEAT_GUI_MSWIN
+    // Set window caption color
+    if (s_hwnd != NULL)
+    {
+        if (IsSystemDarkMode())
+        {
+            SetWindowCaptionColor(s_hwnd, RGB(32, 32, 32), RGB(0, 0, 0));
+        }
+    }
+#endif
+
     // Display any pending error messages
     display_errors();
 
@@ -9402,6 +9418,47 @@ test_gui_w32_sendevent(char_u *event, dict_T *args)
     {
 	semsg(_(e_invalid_value_for_argument_str_str), "event", event);
 	return FALSE;
+    }
+}
+#endif
+
+#ifdef FEAT_GUI_MSWIN
+    static int
+IsSystemDarkMode(void)
+{
+    const wchar_t *subKey =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
+    const wchar_t *valueName = L"AppsUseLightTheme";
+    DWORD data = 0;
+    DWORD dataSize = sizeof(data);
+    HKEY hKey;
+
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, subKey, 0, KEY_READ, &hKey) ==
+        ERROR_SUCCESS)
+    {
+        if (RegGetValueW(hKey, NULL, valueName, RRF_RT_REG_DWORD, NULL, &data,
+                         &dataSize) == ERROR_SUCCESS)
+        {
+            RegCloseKey(hKey);
+            return (data == 0);
+        }
+        RegCloseKey(hKey);
+    }
+    return FALSE;
+}
+
+    static void
+SetWindowCaptionColor(HWND hwnd, COLORREF bgColor, COLORREF borderColor)
+{
+    if (pDwmSetWindowAttribute != NULL)
+    {
+        BOOL useDarkMode = TRUE;
+        pDwmSetWindowAttribute(hwnd, 34, &borderColor, sizeof(borderColor));
+        pDwmSetWindowAttribute(hwnd, 35, &bgColor, sizeof(bgColor));
+        pDwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
+
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
 }
 #endif
