@@ -8,6 +8,8 @@
 
 #ifdef VIM_RUNTIME_LIBRARY
 
+#include "vim.h"
+
 #include <windows.h>
 #include <process.h>
 #include <setjmp.h>
@@ -15,7 +17,16 @@
 #include <string.h>
 #include <wchar.h>
 
+extern int vim_runtime_handle_drop_one(char_u *path, void (*callback)(void *), void *cookie);
+
 extern int VimMain(int argc, char **argv);
+
+typedef struct vim_runtime_open_request
+{
+    struct vim_runtime_open_request *next;
+    vim_runtime_instance *owner;
+    wchar_t *path;
+} vim_runtime_open_request;
 
 struct vim_runtime_instance
 {
@@ -29,6 +40,12 @@ struct vim_runtime_instance
     HWND parent_window;
     volatile LONG gui_ready;
     unsigned long long serial;
+    CRITICAL_SECTION open_lock;
+    int open_lock_ready;
+    volatile LONG stopping;
+    vim_runtime_open_request *open_head;
+    vim_runtime_open_request *open_tail;
+    vim_runtime_open_request *open_active;
 };
 
 static volatile LONG64 next_instance_serial;
@@ -59,12 +76,34 @@ find_vim_window(HWND window, LPARAM opaque)
 }
 
     static void
+free_open_request(vim_runtime_open_request *request)
+{
+    if (request != NULL)
+    {
+        free(request->path);
+        free(request);
+    }
+}
+
+    static void
 free_instance(vim_runtime_instance *instance)
 {
     int i;
 
+    vim_runtime_open_request *request;
+
     if (instance == NULL)
-	return;
+        return;
+    request = instance->open_head;
+    while (request != NULL)
+    {
+        vim_runtime_open_request *next = request->next;
+        free_open_request(request);
+        request = next;
+    }
+    free_open_request(instance->open_active);
+    if (instance->open_lock_ready)
+        DeleteCriticalSection(&instance->open_lock);
     if (instance->argv != NULL)
     {
 	for (i = 0; i < instance->argc; ++i)
@@ -86,6 +125,7 @@ instance_thread(void *opaque)
 	instance->exit_status = VimMain(instance->argc, instance->argv);
     else
 	instance->exit_status = worker_exit_status;
+    InterlockedExchange(&instance->stopping, 1);
     vim_runtime_console_cleanup();
     exit_landing = NULL;
     current_runtime_instance = NULL;
@@ -112,6 +152,13 @@ vim_runtime_instance_create(int argc, const char *const *argv)
 	SetLastError(ERROR_OUTOFMEMORY);
 	return NULL;
     }
+    if (!InitializeCriticalSectionEx(&instance->open_lock, 0, 0))
+    {
+        free_instance(instance);
+        SetLastError(ERROR_OUTOFMEMORY);
+        return NULL;
+    }
+    instance->open_lock_ready = 1;
     instance->argc = argc;
     instance->serial = (unsigned long long)InterlockedIncrement64(
 						    &next_instance_serial);
@@ -251,6 +298,154 @@ vim_runtime_instance_request_close(vim_runtime_instance *instance)
     if (!PostMessageW(window, WM_CLOSE, 0, 0))
 	return -1;
     return 1;
+}
+
+    int VIM_RUNTIME_CALL
+vim_runtime_instance_open_file_w(vim_runtime_instance *instance,
+                                 const wchar_t *absolute_path)
+{
+    vim_runtime_open_request *request;
+    vim_runtime_open_request *old_tail;
+    HWND window;
+    size_t length;
+
+    if (instance == NULL || absolute_path == NULL || absolute_path[0] == L'\0')
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+    length = wcslen(absolute_path);
+    if (length >= 32767)
+    {
+        SetLastError(ERROR_FILENAME_EXCED_RANGE);
+        return -1;
+    }
+    if (WaitForSingleObject(instance->thread, 0) != WAIT_TIMEOUT
+            || InterlockedCompareExchange(&instance->stopping, 0, 0) != 0)
+    {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return -1;
+    }
+    window = (HWND)vim_runtime_instance_window(instance);
+    if (window == NULL)
+        return WaitForSingleObject(instance->thread, 0) == WAIT_TIMEOUT ? 0 : -1;
+
+    request = (vim_runtime_open_request *)calloc(1, sizeof(*request));
+    if (request == NULL)
+    {
+        SetLastError(ERROR_OUTOFMEMORY);
+        return -1;
+    }
+    request->path = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+    if (request->path == NULL)
+    {
+        free_open_request(request);
+        SetLastError(ERROR_OUTOFMEMORY);
+        return -1;
+    }
+    memcpy(request->path, absolute_path, (length + 1) * sizeof(wchar_t));
+    request->owner = instance;
+
+    EnterCriticalSection(&instance->open_lock);
+    if (InterlockedCompareExchange(&instance->stopping, 0, 0) != 0
+            || WaitForSingleObject(instance->thread, 0) != WAIT_TIMEOUT)
+    {
+        LeaveCriticalSection(&instance->open_lock);
+        free_open_request(request);
+        SetLastError(ERROR_INVALID_HANDLE);
+        return -1;
+    }
+    old_tail = instance->open_tail;
+    if (old_tail != NULL)
+        old_tail->next = request;
+    else
+        instance->open_head = request;
+    instance->open_tail = request;
+    if (!PostMessageW(window, WM_NULL, 0, 0))
+    {
+        if (old_tail != NULL)
+            old_tail->next = NULL;
+        else
+            instance->open_head = NULL;
+        instance->open_tail = old_tail;
+        LeaveCriticalSection(&instance->open_lock);
+        free_open_request(request);
+        return -1;
+    }
+    LeaveCriticalSection(&instance->open_lock);
+    return 1;
+}
+
+    void
+vim_runtime_thread_open_done(void *cookie)
+{
+    vim_runtime_open_request *request = (vim_runtime_open_request *)cookie;
+    vim_runtime_instance *instance = request->owner;
+    HWND window;
+
+    EnterCriticalSection(&instance->open_lock);
+    if (instance->open_active == request)
+        instance->open_active = NULL;
+    window = instance->window;
+    LeaveCriticalSection(&instance->open_lock);
+    free_open_request(request);
+    if (window != NULL)
+        PostMessageW(window, WM_NULL, 0, 0);
+}
+
+    void
+vim_runtime_thread_process_open_files(void)
+{
+    vim_runtime_instance *instance = current_runtime_instance;
+    vim_runtime_open_request *request;
+    char_u *path;
+    int result;
+
+    if (instance == NULL || InterlockedCompareExchange(&instance->gui_ready, 0, 0) == 0)
+        return;
+    EnterCriticalSection(&instance->open_lock);
+    request = instance->open_active == NULL ? instance->open_head : NULL;
+    if (request != NULL)
+    {
+        instance->open_head = request->next;
+        if (instance->open_head == NULL)
+            instance->open_tail = NULL;
+        request->next = NULL;
+        instance->open_active = request;
+    }
+    LeaveCriticalSection(&instance->open_lock);
+    if (request == NULL)
+        return;
+
+    path = utf16_to_enc(request->path, NULL);
+    if (path == NULL || *path == NUL)
+    {
+        vim_free(path);
+        emsg("Vim runtime could not convert the requested file path");
+        vim_runtime_thread_open_done(request);
+        return;
+    }
+    result = vim_runtime_handle_drop_one(path, vim_runtime_thread_open_done,
+                                          request);
+    if (result == 1)
+        return; // handle_drop owns path and will invoke the completion callback.
+    vim_free(path);
+
+    EnterCriticalSection(&instance->open_lock);
+    instance->open_active = NULL;
+    if (result == 0)
+    {
+        request->next = instance->open_head;
+        instance->open_head = request;
+        if (instance->open_tail == NULL)
+            instance->open_tail = request;
+    }
+    LeaveCriticalSection(&instance->open_lock);
+    if (result < 0)
+    {
+        emsg("Vim runtime could not queue the requested file");
+        free_open_request(request);
+    }
 }
 
     void

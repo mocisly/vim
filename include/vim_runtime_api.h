@@ -10,6 +10,10 @@
 #ifndef VIM_RUNTIME_API_H
 #define VIM_RUNTIME_API_H
 
+#include <wchar.h>
+
+#define VIM_RUNTIME_API_VERSION 2
+
 #if defined(_WIN32)
 # if defined(VIM_RUNTIME_LIBRARY)
 #  define VIM_RUNTIME_API __declspec(dllexport)
@@ -63,6 +67,15 @@ vim_runtime_instance_window(vim_runtime_instance *instance);
 VIM_RUNTIME_API int VIM_RUNTIME_CALL
 vim_runtime_instance_request_close(vim_runtime_instance *instance);
 
+/* Queue a native Windows path for opening in this instance's GUI thread.
+ * The path is copied before return.  Return 1 when queued, 0 until the GUI
+ * window is ready, or -1 on invalid input or a stopped instance.
+ * Queued requests are serialized and Vim may still reject an edit.
+ */
+VIM_RUNTIME_API int VIM_RUNTIME_CALL
+vim_runtime_instance_open_file_w(vim_runtime_instance *instance,
+                                const wchar_t *absolute_path);
+
 #ifdef VIM_RUNTIME_LIBRARY
 /* Internal exit landing for mch_exit_g() and mch_exit_c().  Keep the jump
  * entirely inside the Vim C worker thread: no C++ or Qt frame may be crossed.
@@ -70,6 +83,8 @@ vim_runtime_instance_request_close(vim_runtime_instance *instance);
 void vim_runtime_thread_exit(int exit_status);
 void vim_runtime_thread_gui_ready(void);
 void vim_runtime_console_cleanup(void);
+void vim_runtime_thread_process_open_files(void);
+void vim_runtime_thread_open_done(void *cookie);
 unsigned long long vim_runtime_thread_serial(void);
 #endif
 

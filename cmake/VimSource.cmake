@@ -10,6 +10,7 @@ function(vim_prepare_source output_variable)
             "${VIM_INTEGRATION_ROOT}/patches/vim/0001-instance-state.patch"
             "${VIM_INTEGRATION_ROOT}/patches/vim/0002-cmake-integration.patch"
             "${VIM_INTEGRATION_ROOT}/patches/vim/0003-runtime-assets.patch"
+            "${VIM_INTEGRATION_ROOT}/patches/vim/0004-open-file-api.patch"
         RESULT_VARIABLE preparation_status
         OUTPUT_VARIABLE preparation_output
         ERROR_VARIABLE preparation_error

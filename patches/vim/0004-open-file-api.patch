@@ -1,0 +1,79 @@
+diff --git a/src/gui_w32.c b/src/gui_w32.c
+--- a/src/gui_w32.c
++++ b/src/gui_w32.c
+@@ -24,6 +24,10 @@
+  */
+ 
+ #include "vim.h"
++
++#ifdef VIM_RUNTIME_LIBRARY
++# include "vim_runtime_api.h"
++#endif
+ 
+ #if defined(FEAT_DIRECTX)
+ # include "gui_dwrite.h"
+@@ -2659,6 +2663,9 @@
+     focus = gui.in_focus;
+     while (!s_timed_out)
+     {
++#ifdef VIM_RUNTIME_LIBRARY
++	vim_runtime_thread_process_open_files();
++#endif
+ 	// Stop or start blinking when focus changes
+ 	if (gui.in_focus != focus)
+ 	{
+diff --git a/src/ex_docmd.c b/src/ex_docmd.c
+--- a/src/ex_docmd.c
++++ b/src/ex_docmd.c
+@@ -12,6 +12,10 @@
+  */
+ 
+ #include "vim.h"
++
++#ifdef VIM_RUNTIME_LIBRARY
++# include "vim_runtime_api.h"
++#endif
+ 
+ static VIM_INSTANCE_TLS int	quitmore = 0;
+ static VIM_INSTANCE_TLS int	ex_pressedreturn = FALSE;
+@@ -6935,7 +6939,12 @@
+     if (drop_filev != NULL)
+     {
+ 	FreeWild(drop_filec, drop_filev);
+-	vim_free(drop_cookie);
++#ifdef VIM_RUNTIME_LIBRARY
++	if (drop_callback == vim_runtime_thread_open_done)
++	    drop_callback(drop_cookie);
++	else
++#endif
++	    vim_free(drop_cookie);
+     }
+ 
+     drop_filec = filec;
+@@ -6960,6 +6969,26 @@
+  * To be called when text is unlocked, curbuf is unlocked or updating_screen is
+  * reset: Handle a postponed drop.
+  */
++#ifdef VIM_RUNTIME_LIBRARY
++/* Queue one exact filename through Vim's safe drop path.  If a native drop is
++ * already active or postponed, leave the host request pending for a later
++ * GUI loop iteration.  Ownership transfers only on return value 1. */
++    int
++vim_runtime_handle_drop_one(char_u *path, void (*callback)(void *), void *cookie)
++{
++    char_u **files;
++
++    if (drop_busy || drop_filev != NULL)
++        return 0;
++    files = ALLOC_MULT(char_u *, 1);
++    if (files == NULL)
++        return -1;
++    files[0] = path;
++    handle_drop(1, files, FALSE, callback, cookie);
++    return 1;
++}
++#endif
++
+     void
+ handle_any_postponed_drop(void)
+ {

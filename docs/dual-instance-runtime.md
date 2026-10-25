@@ -21,10 +21,11 @@ The declarations are in `include/vim_runtime_api.h`:
 | `vim_runtime_instance_create` | Copy arguments and start one worker; return an opaque handle or NULL. |
 | `vim_runtime_instance_window` | Return the ready native GUI HWND, or NULL. |
 | `vim_runtime_instance_request_close` | Post normal GUI close; Vim may ask to save or cancel. |
+| `vim_runtime_instance_open_file_w` | Copy an absolute UTF-16 Windows filename into this instance's FIFO open queue; returns 1 when accepted, 0 before the GUI is ready, -1 on error. Vim may still decline the edit. |
 | `vim_runtime_instance_wait` | Return 1 when exited, 0 on timeout, -1 on error; optionally return Vim's exit code. |
 | `vim_runtime_instance_destroy` | Release an exited handle; return 0 while it is still running. |
 
-GUI input, focus and resizing use the native view and its Windows message queue. There is no general non-GUI input/state-inspection API yet. Ex sessions can execute startup scripts; console sessions use the process console. The Qt UI never directly enters the Vim core. Closing one pane completes that instance's leave hooks and cleanup while the other pane remains usable. Cancelling a close leaves the host open, and a later close starts a new attempt.
+GUI input, focus and resizing use the native view and its Windows message queue. There is no general non-GUI input/state-inspection API yet. Ex sessions can execute startup scripts; console sessions use the process console. The Qt UI never directly enters the Vim core. Host file-open requests are copied before the call returns, delivered in order on the owning GUI thread, and use Vim's existing drop/edit path without Ex command parsing. An accepted request is not proof that a file was opened: Vim may reject it or prompt about unsaved changes. Closing one pane completes that instance's leave hooks and cleanup while the other pane remains usable. Cancelling a close leaves the host open, and a later close starts a new attempt.
 
 The shared target enables `EXITFREE`. Shutdown releases Vim-owned storage, GUI/DLL resources and Python wrapper references before the worker terminates. Windows console callbacks record events and wake registered workers; only an owning worker touches Vim state. The last console instance restores the host's original console mode. Windows shutdown still ends the host process according to operating-system policy.
 

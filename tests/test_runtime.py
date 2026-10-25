@@ -62,6 +62,7 @@ def main():
                                    "--fresh-cycles", str(args.fresh_cycles)]),
         ("test_gui_instances.py", []),
         ("test_gui_input.py", []),
+        ("test_open_file_api.py", []),
         ("test_console_instances.py", ["--fatal", "--fresh-cycles", str(args.fresh_cycles)]),
     ):
         run(script, [sys.executable, str(ROOT / "tests" / script), "--dll", str(dll), *extra])
