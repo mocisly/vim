@@ -1,0 +1,22 @@
+{
+  "version": 8,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 2,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2026-qt",
+      "displayName": "VS2026 x64 with Qt 6.12",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/vs2026-qt",
+      "cacheVariables": {
+        "VIM_ENABLE_QT_HOST": "ON",
+        "VIM_BUILD_SHARED_CORE": "ON",
+        "CMAKE_PREFIX_PATH": "C:/Programs/Qt/6.12.0/msvc2022_64"
+      }
+    }
+  ]
+}

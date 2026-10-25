@@ -1,0 +1,14 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1270,9 +1270,3 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+ endif()
+ 
+-foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+-  string(TOUPPER ${config} upper_config)
+-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/runtime" DESTINATION "${CMAKE_BINARY_DIR}/${config}/vim")
+-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/ctags58" DESTINATION "${CMAKE_BINARY_DIR}/${config}/vim")
+-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/.vim" DESTINATION "${CMAKE_BINARY_DIR}/${config}/vim")
+-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/_vimrc" DESTINATION "${CMAKE_BINARY_DIR}/${config}/vim")
+-endforeach()
++include("${VIM_INTEGRATION_ROOT}/cmake/VimAssets.cmake")
